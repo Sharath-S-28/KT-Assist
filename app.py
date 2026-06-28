@@ -73,9 +73,11 @@ def create_app() -> FastAPI:
             return {"status": "not_ready", "database": "unreachable"}
 
     from services.routers import (
+        assets,
         assurance_report,
         dashboard,
         explanation,
+        gaps,
         graph,
         packages,
         participants,
@@ -89,6 +91,8 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(assurance_report.router)
     app.include_router(graph.router)
+    app.include_router(assets.router)
+    app.include_router(gaps.router)
 
     return app
 

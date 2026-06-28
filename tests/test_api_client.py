@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from database import get_db
 from frontend.api_client import ApiClient, ApiError
-from models import KnowledgePackage, KTProgram, Participant
+from models import GapRecord, KnowledgeAsset, KnowledgePackage, KTProgram, Participant
 from schemas.knowledge_graph import KnowledgeObject, Relationship
 from services.graph_storage import save_graph_version
 
@@ -123,3 +123,87 @@ def test_assurance_report_404_for_unknown_program_raises_api_error(client):
     with pytest.raises(ApiError) as excinfo:
         client.get_assurance_report("does-not-exist")
     assert excinfo.value.status_code == 404
+
+
+def test_list_assets_round_trip(client, db_session):
+    program = KTProgram(name="Program Assets")
+    db_session.add(program)
+    db_session.flush()
+    package = KnowledgePackage(program_id=program.id, name="Package Assets1")
+    db_session.add(package)
+    db_session.flush()
+    asset = KnowledgeAsset(
+        package_id=package.id,
+        filename="onboarding.docx",
+        file_type="docx",
+        storage_path="/tmp/onboarding.docx",
+        content_hash="b" * 64,
+        extraction_status="Extracted",
+    )
+    db_session.add(asset)
+    db_session.flush()
+
+    assets = client.list_assets(package.id)
+    assert len(assets) == 1
+    assert assets[0].filename == "onboarding.docx"
+
+
+def test_submit_gap_response_round_trip(client, db_session):
+    program = KTProgram(name="Program GapResp")
+    db_session.add(program)
+    db_session.flush()
+    package = KnowledgePackage(program_id=program.id, name="Package GapResp1")
+    db_session.add(package)
+    db_session.flush()
+    gap = GapRecord(
+        package_id=package.id,
+        object_type="Process",
+        criticality="Critical",
+        description="Missing month-end close process",
+        remediation_question="What are the steps, in what order, and by whom?",
+        status="Open",
+        risk_level="High",
+    )
+    db_session.add(gap)
+    db_session.flush()
+
+    starting_node = KnowledgeObject(
+        id="proc-1", object_type="Process", name="Open process", criticality="Critical"
+    )
+    save_graph_version(db_session, package.id, [starting_node], [])
+    db_session.flush()
+
+    result = client.submit_gap_response(
+        package.id, gap.id, raw_text="The month-end close process is run by the controller on day 1."
+    )
+    assert result.gap_id == gap.id
+    assert result.gap_status == "Resolved"
+    assert result.new_version == 2
+
+    gaps = client.list_gaps(package.id)
+    assert gaps[0].status == "Resolved"
+
+
+def test_list_gaps_round_trip(client, db_session):
+    program = KTProgram(name="Program Gaps")
+    db_session.add(program)
+    db_session.flush()
+    package = KnowledgePackage(program_id=program.id, name="Package Gaps1")
+    db_session.add(package)
+    db_session.flush()
+    gap = GapRecord(
+        package_id=package.id,
+        object_type="Process",
+        criticality="Critical",
+        description="Missing month-end close process",
+        remediation_question="What are the steps, in what order, and by whom?",
+        status="Open",
+        risk_level="High",
+    )
+    db_session.add(gap)
+    db_session.flush()
+
+    gaps = client.list_gaps(package.id)
+    assert len(gaps) == 1
+    assert gaps[0].object_type == "Process"
+    assert gaps[0].risk_level == "High"
