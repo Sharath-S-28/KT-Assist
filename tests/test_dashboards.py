@@ -243,6 +243,9 @@ def test_readiness_dashboard_builds_pillars_and_competency_indicators(db_session
     assert dashboard.ois == 60.0
     assert dashboard.readiness_status == "Not Ready"
     assert dashboard.pillars[0].pillar_id == "OE"
+    # Session 34: receiver_readiness_id must be populated so Screen 9
+    # (Explanation/Traceability) can call GET /api/explanations/{id}.
+    assert dashboard.receiver_readiness_id
     indicator = next(c for c in dashboard.competencies if c.competency_id == "System Operation")
     assert indicator.indicator == "fail"
 

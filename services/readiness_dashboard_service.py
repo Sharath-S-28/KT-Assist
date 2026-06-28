@@ -81,6 +81,7 @@ class ReadinessDashboardService:
         )
 
         return ReadinessDashboard(
+            receiver_readiness_id=readiness.id,
             receiver_id=participant_id,
             receiver_name=participant.name if participant is not None else participant_id,
             package_id=readiness.package_id,

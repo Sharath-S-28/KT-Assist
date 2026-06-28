@@ -607,9 +607,4 @@ COLORS = {
     "success_ready": "#3D6B4F",
 }
 
-# ============================================================
-# Agent boundaries (Appendix D) -- quick reference, enforced in code
-# at the service-layer boundary, not just documented here.
-# ============================================================
-
-AGENT_NAMES = ["KAI", "KVA", "KGE", "KRA", "KASE"]
+# ===

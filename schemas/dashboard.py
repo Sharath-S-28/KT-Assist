@@ -85,6 +85,11 @@ class CompetencyIndicator(BaseModel):  # [FROZEN] Screen 8 Pass/Fail/Warning
 
 
 class ReadinessDashboard(BaseModel):
+    receiver_readiness_id: str  # models.readiness.ReceiverReadiness.id -- Session 34 addition,
+    # closing the same kind of HTTP-reachability gap already closed for
+    # GapRecord/KnowledgeAsset/GapResponse: this is the id Screen 9
+    # (Explanation/Traceability) needs to call GET /api/explanations/...,
+    # and there was previously no router-exposed way to look it up.
     receiver_id: str
     receiver_name: str
     package_id: str

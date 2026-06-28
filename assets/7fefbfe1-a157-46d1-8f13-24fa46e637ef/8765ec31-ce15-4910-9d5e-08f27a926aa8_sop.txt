@@ -1,0 +1,3 @@
+Month-end close SOP.
+
+Reconcile GL.
