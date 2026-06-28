@@ -100,6 +100,105 @@ class ClaudeClient:
             logger.warning("Claude response was not valid JSON; returning raw text wrapper")
             return {"raw_text": text}
 
+    def rephrase_question(self, object_type: str, status: str, default_question: str) -> str:
+        """Optionally reword a gap remediation question's wording only
+        (services/gap_detection.py's documented boundary: this can never
+        affect detection, criticality, or risk level -- those are pure
+        Python before this is ever called). DEV_MODE returns
+        default_question unchanged (a wording-rephrase has no meaningful
+        offline mock and no detection-affecting content, so there is
+        nothing to fabricate); a live call asks Claude for a rephrase and
+        falls back to default_question on any non-string/empty result so
+        this can never raise or silently drop the question. Uncached --
+        question wording is cheap and per-call, unlike KAI's
+        per-document extraction cost.
+
+        This method was added by Session 35 (Phase 12) after the real
+        Level 3 workflow test became the first caller anywhere in the
+        codebase to invoke run_kva/detect_gaps with a real (non-None)
+        claude_client -- every prior phase test called these functions
+        with claude_client=None, so this contract gap (gap_detection.py
+        calling a method that ClaudeClient never defined) was latent
+        and untriggered until WorkflowRunner's real end-to-end chain
+        first exercised it."""
+        if self.dev_mode:
+            return default_question
+
+        client = self._get_sdk_client()
+        message = client.messages.create(
+            model=config.ANTHROPIC_MODEL,
+            max_tokens=200,
+            system=(
+                "Reword the following knowledge-transfer gap remediation "
+                "question to be clearer and more specific, without changing "
+                "its meaning. Respond with the reworded question text only."
+            ),
+            messages=[{
+                "role": "user",
+                "content": json.dumps(
+                    {"object_type": object_type, "status": status, "question": default_question}
+                ),
+            }],
+        )
+        text = "".join(block.text for block in message.content if block.type == "text").strip()
+        return text or default_question
+
+    def judge_scenario_quality(self, weighted_scenario) -> tuple[bool, str]:
+        """Layer 4 of scenario validation's independent judgment pass
+        (services/scenario_validation.py's documented boundary: this
+        judges scenario quality/structure only -- it must never compute
+        OIS, readiness, or a participant's score). DEV_MODE delegates to
+        scenario_validation's own deterministic _default_judgment
+        rubric rather than fabricating a mock verdict, since that
+        rubric is already the project's locked "independent of
+        generation" fallback and reusing it keeps DEV_MODE and live
+        judgment structurally consistent (same two-tuple contract);
+        live mode asks Claude for a pass/reject + reason and falls back
+        to the deterministic rubric if the response can't be parsed,
+        so this can never raise.
+
+        This method was added alongside rephrase_question by Session 35
+        (Phase 12) for the same root cause: WorkflowRunner's real
+        end-to-end chain was the first caller anywhere in the codebase
+        to pass a real (non-None) claude_client through
+        compose_assessment_package_for_package -> validate_scenario_set
+        -> layer4_independent_judgment, which exposed that ClaudeClient
+        never defined this method (every prior phase test used
+        claude_client=None or a hand-built test mock object)."""
+        if self.dev_mode:
+            from services.scenario_validation import _default_judgment
+
+            result = _default_judgment(weighted_scenario)
+            return result.passed, (result.reason or "")
+
+        client = self._get_sdk_client()
+        message = client.messages.create(
+            model=config.ANTHROPIC_MODEL,
+            max_tokens=200,
+            system=(
+                "You are judging whether a knowledge-transfer assessment "
+                "scenario requires real judgement/decision-making rather "
+                "than rote recall. Respond with strict JSON: "
+                '{"passed": true|false, "reason": "<short reason>"}.'
+            ),
+            messages=[{
+                "role": "user",
+                "content": json.dumps({
+                    "decision_point": weighted_scenario.scenario.decision_point,
+                    "type_label": weighted_scenario.scenario.type_label,
+                }),
+            }],
+        )
+        text = "".join(block.text for block in message.content if block.type == "text").strip()
+        try:
+            parsed = json.loads(text)
+            return bool(parsed["passed"]), str(parsed.get("reason", ""))
+        except (json.JSONDecodeError, KeyError, TypeError):
+            from services.scenario_validation import _default_judgment
+
+            result = _default_judgment(weighted_scenario)
+            return result.passed, (result.reason or "")
+
     @staticmethod
     def _default_mock(user_payload: dict[str, Any]) -> dict[str, Any]:
         return {
