@@ -1,0 +1,4 @@
+Month-end close SOP.
+
+Step 1: reconcile the GL.
+Step 2: post journal entries to SAP.
