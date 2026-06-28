@@ -48,6 +48,16 @@ class Scenario(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         String(36), ForeignKey("assessment_packages.id"), nullable=False, index=True
     )
 
+    # Traceability back to the originating knowledge graph element
+    # (services.scenario_generation.GeneratedScenario.source_kind/source_id).
+    # "object" -> source_id is a KnowledgeObject.id directly; "relationship"
+    # -> source_id is a Relationship.id, whose own source_id/target_id (looked
+    # up from the graph payload) are the underlying knowledge-object ids.
+    # Nullable because scenarios created before this column existed (or by
+    # tests constructing rows directly) won't have it populated.
+    source_kind: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    source_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+
     category: Mapped[str] = mapped_column(String(32), nullable=False)  # Understanding/Operational/Exception
     difficulty: Mapped[str] = mapped_column(String(32), nullable=False)  # L1-L4
 
