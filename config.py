@@ -33,8 +33,9 @@ DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
 KAI_CACHE_DIR = Path(os.getenv("KAI_CACHE_DIR", DATA_DIR / "cache" / "kai"))
 SCENARIO_CACHE_DIR = Path(os.getenv("SCENARIO_CACHE_DIR", DATA_DIR / "cache" / "scenarios"))
 GRAPH_STORAGE_DIR = Path(os.getenv("GRAPH_STORAGE_DIR", DATA_DIR / "graphs"))
+EXPLANATION_CACHE_DIR = Path(os.getenv("EXPLANATION_CACHE_DIR", DATA_DIR / "cache" / "explanations"))
 
-for _dir in (DATA_DIR, KAI_CACHE_DIR, SCENARIO_CACHE_DIR, GRAPH_STORAGE_DIR, REPORTS_DIR):
+for _dir in (DATA_DIR, KAI_CACHE_DIR, SCENARIO_CACHE_DIR, GRAPH_STORAGE_DIR, EXPLANATION_CACHE_DIR, REPORTS_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
 
 # ============================================================
@@ -56,6 +57,10 @@ CACHE_ENABLED = os.getenv("CACHE_ENABLED", "true").lower() == "true"
 
 # Batched semantic boundary checks (KAI cost control) -- objects per Claude call.
 SEMANTIC_BATCH_SIZE = 10
+
+# The five logically separated agents (Appendix D), per
+# schemas/agent_contracts.py's AgentRequest/AgentResponse envelope.
+AGENT_NAMES = ["KAI", "KVA", "KGE", "KRA", "KASE"]
 
 # ============================================================
 # Knowledge Graph Framework (KGF) -- object model

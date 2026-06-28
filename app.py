@@ -72,11 +72,23 @@ def create_app() -> FastAPI:
             logger.error("Readiness check failed: %s", exc)
             return {"status": "not_ready", "database": "unreachable"}
 
-    from services.routers import packages, participants, programs
+    from services.routers import (
+        assurance_report,
+        dashboard,
+        explanation,
+        graph,
+        packages,
+        participants,
+        programs,
+    )
 
     app.include_router(programs.router)
     app.include_router(packages.router)
     app.include_router(participants.router)
+    app.include_router(explanation.router)
+    app.include_router(dashboard.router)
+    app.include_router(assurance_report.router)
+    app.include_router(graph.router)
 
     return app
 

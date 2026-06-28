@@ -202,6 +202,8 @@ def persist_assessment_package(db: Session, package_dict: dict) -> AssessmentPac
         db.add(
             ScenarioRow(
                 assessment_package_id=package_row.id,
+                source_kind=scenario.get("source_kind"),
+                source_id=scenario.get("source_id"),
                 category=scenario["category"],
                 difficulty=scenario["difficulty"],
                 situation=scenario["situation"],

@@ -8,6 +8,7 @@ Each test gets an isolated in-memory SQLite database so phase tests
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from database import Base
 
@@ -16,8 +17,17 @@ from database import Base
 def db_session():
     import models  # noqa: F401  ensure all tables are registered
 
+    # StaticPool: a single shared connection for this in-memory engine.
+    # Without it, SQLite's default per-thread pool hands out a brand-new
+    # (empty) ":memory:" database to any thread other than the one that
+    # created the engine -- which is exactly what happens when a test
+    # drives a FastAPI route through TestClient, since sync route
+    # dependencies run in a worker thread (Session 30's router tests were
+    # the first to exercise this path and surfaced the gap).
     engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

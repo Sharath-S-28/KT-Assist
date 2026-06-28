@@ -70,6 +70,29 @@ class ProviderLockoutError(KTAssistError):
     error_code = "provider_lockout"
 
 
+class ExplanationDataError(KTAssistError):
+    """Raised by the Explanation Engine's data layer (Phase 9 / Session 29)
+    when no persisted KASE result exists yet for the requested
+    receiver_readiness_id -- "explain before score" is refused rather than
+    silently producing an empty/zeroed explanation."""
+
+    status_code = 409
+    error_code = "explanation_data_unavailable"
+
+
+class NarrativeNumberViolation(KTAssistError):
+    """Raised internally by the Explanation Engine's Layer 3 number-guard
+    (Phase 9 / Session 29) when the Claude-authored contextual narrative
+    contains a numeric token that isn't traceable to ExplanationData. The
+    caller (services/explanation_narrative_layer.py) catches this itself
+    and falls back to the deterministic template narrative -- it should
+    never reach an API boundary as a 5xx, but is a KTAssistError for
+    consistency and so tests can assert on it directly."""
+
+    status_code = 500
+    error_code = "narrative_number_violation"
+
+
 async def kt_assist_exception_handler(request: Request, exc: KTAssistError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
