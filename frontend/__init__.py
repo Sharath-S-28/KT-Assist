@@ -31,4 +31,18 @@ one explicit exception -- it is how api_client.py returns typed objects
 without duplicating field names a third time. This is the boundary that
 makes "a future React rewrite only ever has to re-implement the HTTP
 calls in api_client.py" true rather than aspirational.
+
+React migration boundary, reaffirmed at the close of Session 34: this
+is that boundary doc -- there is no separate file, because the contract
+is the one paragraph above plus its mechanical enforcement, not prose
+describing a future rewrite that doesn't exist yet. Screens 6-10 (Session
+34) were added under the exact same constraint as Screens 1-5 and verified
+clean by the same AST guard (tests/test_frontend_boundary.py, part of the
+444-test suite) with zero new exceptions: every one of the ten screens
+reaches the backend only via frontend/api_client.py's typed methods.
+A React rewrite of any screen therefore only ever needs to: (1) call the
+same FastAPI routes api_client.py already calls (see each method's
+docstring for the route), and (2) reproduce each screen's render() logic
+as components -- no screen holds business logic, DB access, or
+Anthropic/agent calls that would need to be ported separately.
 """

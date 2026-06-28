@@ -10,8 +10,9 @@ the real str/UUID ids the same way schemas/dashboard.py and
 schemas/explanation.py already reconciled the spec against the live
 schema). Response bodies are parsed into the backend's own Pydantic
 response schemas (schemas/program.py, schemas/participant.py,
-schemas/workflow.py, schemas/graph.py, schemas/dashboard.py,
-schemas/explanation.py, schemas/assurance_report.py) -- this module is
+schemas/workflow.py, schemas/graph.py, schemas/asset.py, schemas/gap.py,
+schemas/dashboard.py, schemas/explanation.py,
+schemas/assurance_report.py) -- this module is
 the one explicitly-allowed place outside the backend itself that may
 import schemas/, per the frontend boundary guard
 (tests/test_frontend_boundary.py). It must never import services/,
@@ -39,9 +40,11 @@ from typing import Optional
 import httpx
 from pydantic import BaseModel, Field
 
+from schemas.asset import AssetRead
 from schemas.assurance_report import AssuranceReport
 from schemas.dashboard import CoverageDashboard, ExecutiveDashboard, ReadinessDashboard
 from schemas.explanation import ExplanationResponse, RecommendationItem
+from schemas.gap import GapRead, GapResolutionResult
 from schemas.graph import GraphPayload, NodeDetail
 from schemas.participant import ParticipantRead, ReceiverRoleAssignmentRead
 from schemas.program import KnowledgePackageRead, KTProgramRead
@@ -189,6 +192,28 @@ class ApiClient:
     ) -> KnowledgePackageRead:
         payload = {"program_id": program_id, "name": name, "description": description}
         return KnowledgePackageRead.model_validate(self._post("/api/packages", json=payload).json())
+
+    def list_assets(self, package_id: str) -> list[AssetRead]:
+        body = self._get(f"/api/packages/{package_id}/assets").json()
+        return [AssetRead.model_validate(row) for row in body]
+
+    # -- gaps (services/routers/gaps.py, Phase 11 / Session 33) ------------
+
+    def list_gaps(self, package_id: str) -> list[GapRead]:
+        body = self._get(f"/api/packages/{package_id}/gaps").json()
+        return [GapRead.model_validate(row) for row in body]
+
+    def submit_gap_response(
+        self, package_id: str, gap_id: str, raw_text: str, submitted_by_participant_id: Optional[str] = None
+    ) -> GapResolutionResult:
+        """Backs Screen 6 (Gap Resolution Workspace, Session 34): POSTs a
+        free-text answer to one gap's remediation question and returns the
+        end-to-end outcome (capture -> interpret -> apply-to-graph ->
+        recalculate-coverage), per services/routers/gaps.py."""
+        payload = {"raw_text": raw_text, "submitted_by_participant_id": submitted_by_participant_id}
+        return GapResolutionResult.model_validate(
+            self._post(f"/api/packages/{package_id}/gaps/{gap_id}/responses", json=payload).json()
+        )
 
     # -- participants (services/routers/participants.py) --------------------
 

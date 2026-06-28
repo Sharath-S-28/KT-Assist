@@ -13,7 +13,7 @@ before database.init_db() calls create_all().
 from models.program import KTProgram, KnowledgePackage
 from models.participant import Participant, ReceiverRoleAssignment
 from models.asset import KnowledgeAsset, KnowledgeGraphVersion
-from models.coverage import CoverageResult, GapRecord, GapWaiver, RetryAttempt
+from models.coverage import CoverageResult, GapRecord, GapResponse, GapWaiver, RetryAttempt
 from models.assessment import AssessmentPackage, Scenario, ScenarioResponse
 from models.scoring import (
     EvidenceMarkerResult,
@@ -33,6 +33,7 @@ __all__ = [
     "KnowledgeGraphVersion",
     "CoverageResult",
     "GapRecord",
+    "GapResponse",
     "GapWaiver",
     "RetryAttempt",
     "AssessmentPackage",
