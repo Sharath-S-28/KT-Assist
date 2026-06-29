@@ -74,7 +74,10 @@ def inject_global_css() -> None:
     logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "kt_logo.png")
     logo_path = os.path.normpath(logo_path)
     if os.path.exists(logo_path):
-        st.logo(logo_path, size="large")
+        try:
+            st.logo(logo_path, size="large")
+        except TypeError:
+            st.logo(logo_path)
 
     # ── Google Fonts ──
     st.markdown(
