@@ -6,7 +6,7 @@ routers/explanation.py) serves the full explanation, traceability tree,
 trace subtree, and recommendations end-to-end through the real ASGI app.
 
 Reuses the same fixture shape as test_session29_explanation_engine.py
-(one failing critical competency, System Operation, everything else
+(one failing critical competency, exception_handling, everything else
 Demonstrated) so a single KASE rollup exercises both sessions' surfaces.
 """
 
@@ -33,7 +33,7 @@ _RESPONSE_FOR = {
 }
 
 _SET_NOT_READY = {name: "Demonstrated" for name in config.COMPETENCY_CATALOG}
-_SET_NOT_READY["System Operation"] = "Missing"
+_SET_NOT_READY["exception_handling"] = "Missing"
 
 
 @pytest.fixture()
@@ -130,21 +130,21 @@ def test_recommends_only_failing_critical_competencies(db_session, not_ready_rea
     assert len(recommendations) == 1
     rec = recommendations[0]
     assert isinstance(rec, RecommendationItem)
-    assert rec.competency_id == "System Operation"
+    assert rec.competency_id == "exception_handling"
     assert rec.score == 0.0
     assert rec.critical_threshold == config.CRITICAL_COMPETENCY_GATE_THRESHOLD
-    # "System Operation" is a REMEDIATION_TABLE key -- its specific actions apply.
+    # "exception_handling" is a REMEDIATION_TABLE key -- its specific actions apply.
     from frameworks.explanation_framework import REMEDIATION_TABLE
 
-    assert rec.actions == REMEDIATION_TABLE["System Operation"]
+    assert rec.actions == REMEDIATION_TABLE["exception_handling"]
 
 
 def test_recommends_nothing_when_every_gate_passes():
     from schemas.explanation import CompetencyFact, ExplanationData, PillarFact
 
     competency = CompetencyFact(
-        competency_id="Process Execution",
-        name="Process Execution",
+        competency_id="process_execution",
+        name="process_execution",
         score=100.0,
         weight=1.0,
         is_critical=True,
@@ -224,7 +224,7 @@ def test_router_get_recommendations_end_to_end(client, not_ready_readiness_id):
     assert response.status_code == 200
     body = response.json()
     assert len(body) == 1
-    assert body[0]["competency_id"] == "System Operation"
+    assert body[0]["competency_id"] == "exception_handling"
 
 
 def test_router_404_explanation_data_error_for_unscored_receiver(client):

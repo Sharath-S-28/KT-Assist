@@ -74,7 +74,7 @@ def _bad_recall_scenario(source_id="bad-1"):
         trigger="Someone asks a definition question.",
         decision_point="Define escalation.",
         expected_evidence=["States the dictionary definition."],
-        competency_mapping=["Process Execution"],
+        competency_mapping=["process_execution"],
     )
 
 
@@ -152,7 +152,7 @@ def test_layer1_rejects_missing_situation():
 
 def test_layer1_rejects_competency_mapping_outside_bounds():
     scenario = _bad_recall_scenario()
-    w = _weighted(scenario, competency_mapping=["Process Execution"])  # only 1, below MIN
+    w = _weighted(scenario, competency_mapping=["process_execution"])  # only 1, below MIN
     result = layer1_structural_completeness(w)
     assert result.passed is False
     assert "competency_mapping" in result.reason
@@ -179,17 +179,17 @@ def test_layer3_rejects_a_scenario_with_a_competency_foreign_to_its_type():
     scenario = GeneratedScenario(
         source_kind="object",
         source_id="x1",
-        type_label="Process",  # expects only "Process Execution"
+        type_label="Process",  # expects only "process_execution"
         category="Understanding",
         situation="s", context="c", trigger="t",
         decision_point="What should be done?",
         expected_evidence=["e"],
-        competency_mapping=["Risk Judgement"],  # foreign to Process
+        competency_mapping=["decision_making"],  # foreign to Process
     )
-    w = _weighted(scenario, competency_mapping=["Risk Judgement", "Process Execution"])
+    w = _weighted(scenario, competency_mapping=["decision_making", "process_execution"])
     result = layer3_independent_grounding(w)
     assert result.passed is False
-    assert "Risk Judgement" in result.reason
+    assert "decision_making" in result.reason
 
 
 def test_layer3_rejects_unrecognized_type_label():

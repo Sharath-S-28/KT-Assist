@@ -231,7 +231,7 @@ def test_readiness_dashboard_builds_pillars_and_competency_indicators(db_session
         CompetencyResult(
             package_id=package.id,
             participant_id=receiver.id,
-            competency_name="System Operation",
+            competency_name="exception_handling",
             is_critical=True,
             score=60.0,
         )
@@ -246,7 +246,7 @@ def test_readiness_dashboard_builds_pillars_and_competency_indicators(db_session
     # Session 34: receiver_readiness_id must be populated so Screen 9
     # (Explanation/Traceability) can call GET /api/explanations/{id}.
     assert dashboard.receiver_readiness_id
-    indicator = next(c for c in dashboard.competencies if c.competency_id == "System Operation")
+    indicator = next(c for c in dashboard.competencies if c.competency_id == "exception_handling")
     assert indicator.indicator == "fail"
 
 

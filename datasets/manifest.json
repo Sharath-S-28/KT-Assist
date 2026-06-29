@@ -12,8 +12,8 @@
         "ground_truth/gap_answers.json",
         "ground_truth/coverage_curve.json"
       ],
-      "measured_initial_coverage": 0.6153846153846154,
-      "measured_final_coverage": 0.8846153846153846
+      "measured_initial_coverage": 0.7105263157894737,
+      "measured_final_coverage": 0.868421052631579
     }
   ],
   "golden_responses": {

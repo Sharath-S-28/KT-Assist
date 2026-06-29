@@ -162,7 +162,7 @@ def assurance_program(db_session):
         CompetencyResult(
             package_id=package2.id,
             participant_id=receiver2.id,
-            competency_name="System Operation",
+            competency_name="exception_handling",
             is_critical=True,
             score=55.0,
         )
@@ -221,7 +221,7 @@ def test_assurance_report_composes_all_sections(db_session, assurance_program):
     # 8. Recommendations -- only the failing critical competency gets one
     assert report.recommendations_by_receiver[receiver1.id] == []
     assert len(report.recommendations_by_receiver[receiver2.id]) == 1
-    assert report.recommendations_by_receiver[receiver2.id][0].competency_name == "System Operation"
+    assert report.recommendations_by_receiver[receiver2.id][0].competency_name == "exception_handling"
 
     # 9. Traceability appendix
     assert len(report.traced_receiver_readiness_ids) == 2

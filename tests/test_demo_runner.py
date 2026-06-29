@@ -3,10 +3,17 @@ tests/test_demo_runner.py — Phase 12 / Session 36: DemoRunner +
 resilience + eight-scene-narrative verification.
 
 Reuses the exact worked example from tests/level3/test_full_workflow.py
-(the same Process/Task/Business-Rule/Risk/System graph, hand-verified to
-go 8.5/13 -> 11.5/13 -> 13/13 across two gap closures) so DemoRunner's
-own narration can be checked against an already-trusted arithmetic
-trail, rather than inventing a second, unverified worked example.
+(the same Process/Task/System/Dependency/Risk/Business-Rule/Known-Issue
+graph, hand-verified to go 17.5/22 -> 19/22 -> 22/22 across two gap
+closures, Task then Control) so DemoRunner's own narration can be
+checked against an already-trusted arithmetic trail, rather than
+inventing a second, unverified worked example.
+
+[PROPOSAL ruling, KTTL Chunk 2 reconciliation]: the worked example was
+redesigned because the prior 4-object graph no longer cleanly
+auto-detects with a single System gap under the new KTTL profiles --
+see tests/level3/test_full_workflow.py's module docstring for the full
+reconciliation, which this file mirrors exactly.
 
 File moved here (was tests/demo/test_demo_runner.py) to match the
 build spec's file table once its text became available -- see
@@ -26,13 +33,19 @@ EXTRACTION_MOCK = {
          "criticality": "Important", "confidence": 0.9},
         {"id": "t1", "object_type": "Task", "name": "Task", "description": "",
          "criticality": "Important", "confidence": 0.9},
-        {"id": "b1", "object_type": "Business Rule", "name": "Business Rule", "description": "GL must balance to zero.",
+        {"id": "s1", "object_type": "System", "name": "System", "description": "SAP FI is the system of record.",
+         "criticality": "Important", "confidence": 0.9},
+        {"id": "d1", "object_type": "Dependency", "name": "Dependency", "description": "Upstream GL feed.",
          "criticality": "Important", "confidence": 0.9},
         {"id": "r1", "object_type": "Risk", "name": "Risk", "description": "Late close risk.",
          "criticality": "Important", "confidence": 0.9},
+        {"id": "b1", "object_type": "Business Rule", "name": "Business Rule", "description": "GL must balance to zero.",
+         "criticality": "Important", "confidence": 0.9},
+        {"id": "k1", "object_type": "Known Issue", "name": "Known Issue", "description": "Known late-feed lag.",
+         "criticality": "Important", "confidence": 0.9},
     ]
 }
-BOUNDARY_MOCK = {"verdicts": [{"object_id": oid, "verdict": "confirm"} for oid in ("p1", "t1", "b1", "r1")]}
+BOUNDARY_MOCK = {"verdicts": [{"object_id": oid, "verdict": "confirm"} for oid in ("p1", "t1", "s1", "d1", "r1", "b1", "k1")]}
 RELATIONSHIP_MOCK = {"relationships": []}
 
 
@@ -42,14 +55,14 @@ def _interpretation_for_gap(kva_result):
     if not kva_result.gaps:
         return None
     gap = kva_result.gaps[0]
-    if gap.object_type == "System":
+    if gap.object_type == "Control":
         return InterpretationResult(
-            gap_object_type="System",
-            raw_text="We use SAP FI to run the GL close.",
+            gap_object_type="Control",
+            raw_text="We run a month-end close checklist control.",
             object_changes=[
                 InterpretedObjectChange(
-                    action="create", object_type="System", name="SAP FI",
-                    description="SAP FI is the system of record for the GL close.",
+                    action="create", object_type="Control", name="Close Checklist",
+                    description="Month-end close checklist control.",
                     criticality="Important",
                 )
             ],
