@@ -70,12 +70,19 @@ def inject_global_css() -> None:
     import os
 
     # ── st.logo() — official Streamlit API for sidebar branding ──
-    # Renders the logo above the nav, survives sidebar collapse/expand.
+    # image: full logo shown when sidebar is open.
+    # icon_image: cube-only icon shown when sidebar is collapsed.
     logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "kt_logo.png")
+    icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "kt_logo_icon.png")
     logo_path = os.path.normpath(logo_path)
+    icon_path = os.path.normpath(icon_path)
     if os.path.exists(logo_path):
         try:
-            st.logo(logo_path, size="large")
+            st.logo(
+                logo_path,
+                size="large",
+                icon_image=icon_path if os.path.exists(icon_path) else None,
+            )
         except TypeError:
             st.logo(logo_path)
 
