@@ -1,0 +1,41 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 72" width="280" height="72">
+  <!-- Background: Midnight Black, matches sidebar -->
+  <rect width="280" height="72" fill="#282A27" rx="0"/>
+
+  <!-- G cube icon, centred vertically, left-aligned -->
+  <!-- Top face -->
+  <polygon points="22,10 40,20 22,30 4,20"
+           fill="none" stroke="#FFAD28" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Left face -->
+  <polygon points="4,20 4,50 22,60 22,30"
+           fill="none" stroke="#FFAD28" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Right face -->
+  <polygon points="40,20 40,50 22,60 22,30"
+           fill="none" stroke="#FFAD28" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- G-notch on left face -->
+  <polyline points="8,25 8,53 18,59 18,40 14,37 14,46 10,43 10,28"
+            fill="none" stroke="#FFAD28" stroke-width="1.8"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- G inner shelf -->
+  <line x1="14" y1="37" x2="18" y2="40"
+        stroke="#FFAD28" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- Product name: KT Assist -->
+  <text x="52" y="30"
+        font-family="'Funnel Sans', 'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-weight="700" font-size="17" fill="#FFFFFF" letter-spacing="-0.3">
+    KT Assist
+  </text>
+
+  <!-- Full form subtitle -->
+  <text x="52" y="48"
+        font-family="'Funnel Sans', 'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-weight="300" font-size="9.5" fill="rgba(255,255,255,0.5)" letter-spacing="0.3">
+    Knowledge Transition &amp; Assurance Platform
+  </text>
+
+  <!-- Thin gold separator line at bottom -->
+  <line x1="0" y1="70" x2="280" y2="70"
+        stroke="#FFAD28" stroke-width="0.5" opacity="0.3"/>
+</svg>
