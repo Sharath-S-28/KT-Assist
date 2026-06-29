@@ -26,12 +26,12 @@ which is not what this worked example is testing for.
   escalation_awareness (SA, critical)     = 100
   problem_solving (CC, critical)     = 100
 
-  OE pillar = mean(100, 100, 50)            = 83.333...
-  SA pillar = mean(50, 100, 100)             = 83.333...
-  GC pillar = mean(100, 100, 100)            = 100
-  CC pillar = mean(0, 100, 100)              = 66.666...
+  OE pillar = 100*(0.12/0.35) + 100*(0.10/0.35) + 50*(0.13/0.35) = 81.4286
+  SA pillar = 50*(0.08/0.20) + 100*(0.06/0.20) + 100*(0.06/0.20)  = 80.0
+  GC pillar = 100*(1/3)      + 100*(1/3)        + 100*(1/3)        = 100.0
+  CC pillar = 0*(0.12/0.30)  + 100*(0.10/0.30)  + 100*(0.08/0.30) = 60.0
 
-  OIS = 83.333*0.35 + 66.666*0.30 + 83.333*0.20 + 100*0.15 = 80.8333...
+  OIS = 81.4286*0.35 + 60.0*0.30 + 80.0*0.20 + 100.0*0.15 = 77.5
 
   Critical competencies below CRITICAL_COMPETENCY_GATE_THRESHOLD (70):
   exception_handling (50), decision_making (0). dependency_awareness
@@ -120,13 +120,25 @@ def test_aggregate_competency_scores_averages_multiple_contributing_scenarios():
 
 
 def test_aggregate_pillar_scores_matches_worked_example():
+    # Locked design decision (Master Spec v2 Appendix A / S26):
+    # "Weighted intra-pillar scoring with OIS dual verification."
+    # Pillar scores use normalised intra-pillar weights derived from
+    # config.COMPETENCY_CATALOG weights (not a simple mean).
+    # OE weights: PE=0.12, TP=0.10, EH=0.13 -> sum=0.35
+    #   OE = 100*(0.12/0.35) + 100*(0.10/0.35) + 50*(0.13/0.35) = 81.4286
+    # SA weights: RA=0.08, DA=0.06, EA=0.06 -> sum=0.20
+    #   SA = 50*(0.08/0.20) + 100*(0.06/0.20) + 100*(0.06/0.20) = 80.0
+    # CC weights: DM=0.12, AT=0.10, PS=0.08 -> sum=0.30
+    #   CC = 0*(0.12/0.30) + 100*(0.10/0.30) + 100*(0.08/0.30) = 60.0
+    # GC weights: CM=0.05, KS=0.05, CC=0.05 -> sum=0.15 (equal -> same as mean)
+    #   GC = 100*(1/3) + 100*(1/3) + 100*(1/3) = 100.0
     competency_scores = aggregate_competency_scores(_worked_example_inputs())
     pillar_scores = aggregate_pillar_scores(competency_scores)
 
-    assert pytest.approx(pillar_scores["OE"], abs=1e-6) == (100 + 100 + 50) / 3
-    assert pytest.approx(pillar_scores["SA"], abs=1e-6) == (50 + 100 + 100) / 3
-    assert pillar_scores["GC"] == 100.0
-    assert pytest.approx(pillar_scores["CC"], abs=1e-6) == (0 + 100 + 100) / 3
+    assert pytest.approx(pillar_scores["OE"], abs=1e-4) == 81.4286
+    assert pytest.approx(pillar_scores["SA"], abs=1e-6) == 80.0
+    assert pytest.approx(pillar_scores["GC"], abs=1e-6) == 100.0
+    assert pytest.approx(pillar_scores["CC"], abs=1e-6) == 60.0
 
 
 def test_aggregate_pillar_scores_skips_unrecognized_competency_names():
@@ -139,10 +151,13 @@ def test_aggregate_pillar_scores_skips_unrecognized_competency_names():
 # ---------------------------------------------------------------------------
 
 def test_compute_ois_matches_worked_example():
+    # With weighted intra-pillar scoring:
+    # OE=81.4286, SA=80.0, CC=60.0, GC=100.0
+    # OIS = 81.4286*0.35 + 60.0*0.30 + 80.0*0.20 + 100.0*0.15 = 77.5
     competency_scores = aggregate_competency_scores(_worked_example_inputs())
     pillar_scores = aggregate_pillar_scores(competency_scores)
     ois = compute_ois(pillar_scores)
-    assert pytest.approx(ois, abs=1e-6) == 80.83333333333333
+    assert pytest.approx(ois, abs=1e-4) == 77.5
 
 
 def test_compute_ois_verification_agrees_with_compute_ois_for_worked_example():
@@ -213,7 +228,7 @@ def test_critical_competencies_below_gate_empty_when_all_critical_pass():
 def test_score_participant_package_matches_worked_example_end_to_end():
     result = score_participant_package(_worked_example_inputs())
 
-    assert pytest.approx(result.ois_score, abs=1e-6) == 80.83333333333333
+    assert pytest.approx(result.ois_score, abs=1e-4) == 77.5
     assert result.verification_passed is True
     assert result.critical_competency_gate_passed is False
     assert result.critical_competencies_below_gate == sorted(["exception_handling", "decision_making"])

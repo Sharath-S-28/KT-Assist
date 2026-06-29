@@ -9,8 +9,10 @@ scenario, up through three levels:
       -> scenario score              (mean marker score, 0-100)
       -> competency score            (mean score of every scenario whose
                                        competency_mapping includes it)
-      -> pillar score                (mean score of every competency
-                                       belonging to that pillar)
+      -> pillar score                (normalised intra-pillar weighted sum
+                                       of competency scores; weights derived
+                                       from config.COMPETENCY_CATALOG weights
+                                       normalised within each pillar)
       -> OIS                         (config.OIS_WEIGHTS-weighted sum of
                                        the four pillar scores)
 
@@ -109,21 +111,45 @@ def aggregate_competency_scores(scenario_inputs: list[ScenarioScoreInput]) -> di
 
 
 def aggregate_pillar_scores(competency_scores: dict[str, float]) -> dict[str, float]:
-    """Mean of the scored competencies belonging to each OIS pillar. A
-    pillar with no scored competencies among its catalog members is
-    absent from the result."""
-    totals: dict[str, float] = defaultdict(float)
-    counts: dict[str, int] = defaultdict(int)
+    """Weighted sum of scored competencies belonging to each OIS pillar,
+    using normalised intra-pillar weights derived from the global
+    competency weights in config.COMPETENCY_CATALOG.
+
+    Each competency's intra-pillar weight = its global weight divided by
+    the sum of all global weights for competencies in that pillar.  This
+    preserves the relative weighting specified in the Master Spec (e.g.
+    Exception Handling outweights Tool Proficiency within Operational
+    Execution) while keeping intra-pillar weights summing to 1.0.
+
+    A pillar with no scored competencies among its catalog members is
+    absent from the result.
+
+    Locked design decision (Master Spec v2 Appendix A / S26):
+    'Weighted intra-pillar scoring with OIS dual verification.'
+    """
+    # Pre-compute the sum of global weights per pillar (for normalisation).
+    # Legacy alias entries (weight=0.0) are excluded from the denominator.
+    pillar_weight_sums: dict[str, float] = defaultdict(float)
+    for name, info in config.COMPETENCY_CATALOG.items():
+        if info["weight"] > 0:
+            pillar_weight_sums[info["pillar"]] += info["weight"]
+
+    pillar_totals: dict[str, float] = defaultdict(float)
+    pillar_scored: set[str] = set()
 
     for name, score in competency_scores.items():
         info = config.COMPETENCY_CATALOG.get(name)
-        if info is None:
+        if info is None or info["weight"] == 0:
             continue
         pillar = info["pillar"]
-        totals[pillar] += score
-        counts[pillar] += 1
+        denom = pillar_weight_sums.get(pillar, 0.0)
+        if denom == 0:
+            continue
+        norm_weight = info["weight"] / denom
+        pillar_totals[pillar] += score * norm_weight
+        pillar_scored.add(pillar)
 
-    return {pillar: totals[pillar] / counts[pillar] for pillar in totals}
+    return {pillar: pillar_totals[pillar] for pillar in pillar_scored}
 
 
 def compute_ois(pillar_scores: dict[str, float]) -> float:
@@ -136,26 +162,34 @@ def compute_ois(pillar_scores: dict[str, float]) -> float:
 
 
 def compute_ois_verification(competency_scores: dict[str, float]) -> float:
-    """Path B: re-derive the same OIS directly from competency_scores,
-    splitting each pillar's OIS_WEIGHTS share evenly across its own
-    catalog members that were actually scored -- never constructing the
+    """Path B: re-derive the same OIS directly from competency_scores
+    using normalised intra-pillar weights -- never constructing the
     intermediate pillar_scores dict Path A builds. Mathematically
     equivalent to Path A for correct input; a mismatch signals an
-    arithmetic bug, not a methodology disagreement."""
-    pillar_members: dict[str, list[str]] = defaultdict(list)
-    for name in competency_scores:
-        info = config.COMPETENCY_CATALOG.get(name)
-        if info is not None:
-            pillar_members[info["pillar"]].append(name)
+    arithmetic bug, not a methodology disagreement.
+
+    Uses the same normalised intra-pillar weighting as
+    aggregate_pillar_scores: each competency's contribution =
+    its global weight / pillar_weight_sum * OIS pillar weight.
+    """
+    # Pre-compute pillar weight sums (excluding legacy alias entries)
+    pillar_weight_sums: dict[str, float] = defaultdict(float)
+    for name, info in config.COMPETENCY_CATALOG.items():
+        if info["weight"] > 0:
+            pillar_weight_sums[info["pillar"]] += info["weight"]
 
     total = 0.0
-    for pillar, weight in config.OIS_WEIGHTS.items():
-        members = pillar_members.get(pillar, [])
-        if not members:
+    for name, score in competency_scores.items():
+        info = config.COMPETENCY_CATALOG.get(name)
+        if info is None or info["weight"] == 0:
             continue
-        share = weight / len(members)
-        for name in members:
-            total += competency_scores[name] * share
+        pillar = info["pillar"]
+        denom = pillar_weight_sums.get(pillar, 0.0)
+        if denom == 0:
+            continue
+        norm_weight = info["weight"] / denom
+        ois_pillar_weight = config.OIS_WEIGHTS.get(pillar, 0.0)
+        total += score * norm_weight * ois_pillar_weight
     return total
 
 
