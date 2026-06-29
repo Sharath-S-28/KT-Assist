@@ -107,9 +107,7 @@ def inject_global_css() -> None:
         unsafe_allow_html=True,
     )
 
-    # 2. CSS — build as plain string with .format() so curly braces in CSS
-    #    rules don't need escaping and can't accidentally be treated as
-    #    f-string interpolation targets.
+    # 2. CSS — plain string with .replace() for colour values.
     css = """
 <style>
 html, body, [class*="css"], .stApp,
@@ -130,31 +128,30 @@ section[data-testid="stSidebar"] * {
     color: PAGE_BG_VAL !important;
     font-family: 'Funnel Sans', sans-serif !important;
 }
-div[data-testid="stSidebarNav"] a:hover {
-    background-color: rgba(255,173,40,0.12) !important;
-    border-radius: 6px;
+
+/* ── Remove Streamlit's default top padding on main content ── */
+.stApp > header { display: none; }
+div[data-testid="stAppViewContainer"] > section[data-testid="stMain"] > div {
+    padding-top: 1.5rem !important;
 }
-div[data-testid="stSidebarNav"] a[aria-current="page"] {
-    background-color: rgba(255,173,40,0.18) !important;
-    border-left: 3px solid #FFAD28 !important;
-    border-radius: 0 6px 6px 0;
-}
-div[data-testid="stMetric"] {
-    background-color: CARD_BG_VAL;
-    border: 1px solid BORDER_VAL;
-    border-radius: 8px;
-    padding: 12px;
-}
+
+/* ── Brand header: fixed at top of sidebar ── */
 #kt-brand-header {
-    padding: 20px 16px 16px 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 340px;
+    z-index: 999;
+    background-color: NAV_BG_VAL;
+    padding: 18px 16px 14px 16px;
     border-bottom: 1px solid rgba(255,255,255,0.10);
-    margin-bottom: 8px;
+    box-sizing: border-box;
 }
 #kt-brand-header .kt-logo-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
 #kt-brand-header .kt-product-name {
     font-family: 'Funnel Sans', sans-serif;
@@ -173,6 +170,30 @@ div[data-testid="stMetric"] {
     line-height: 1.4;
     padding-left: 54px;
 }
+
+/* Push sidebar nav content down so it doesn't hide under the fixed header */
+div[data-testid="stSidebarNav"] {
+    margin-top: 90px;
+}
+
+/* Active nav item */
+div[data-testid="stSidebarNav"] a:hover {
+    background-color: rgba(255,173,40,0.12) !important;
+    border-radius: 6px;
+}
+div[data-testid="stSidebarNav"] a[aria-current="page"] {
+    background-color: rgba(255,173,40,0.18) !important;
+    border-left: 3px solid #FFAD28 !important;
+    border-radius: 0 6px 6px 0;
+}
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+    background-color: CARD_BG_VAL;
+    border: 1px solid BORDER_VAL;
+    border-radius: 8px;
+    padding: 12px;
+}
 </style>
 """.replace("PAGE_BG_VAL", PAGE_BG).replace("INK_VAL", INK).replace(
         "NAV_BG_VAL", NAV_BG
@@ -180,9 +201,11 @@ div[data-testid="stMetric"] {
 
     st.markdown(css, unsafe_allow_html=True)
 
-    # 3. Brand header — sidebar only, once per render pass.
+    # 3. Brand header — injected once per render pass via st.markdown
+    #    (not st.sidebar.markdown) so it renders into the DOM before the
+    #    sidebar nav, then CSS positions it fixed at top-left of the sidebar.
     if not already_injected:
-        st.sidebar.markdown(
+        st.markdown(
             "<div id='kt-brand-header'>"
             "<div class='kt-logo-row'>"
             + cube_svg
