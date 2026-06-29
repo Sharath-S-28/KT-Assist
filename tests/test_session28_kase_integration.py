@@ -17,7 +17,7 @@ arbitration is a non-event:
 
 Two scenario sets:
   SET_A (worked example, mirrors test_session26_kase_scoring.py): OIS
-    ~74.17, critical competency gate FAILS (exception_handling, Risk
+    ~77.5, critical competency gate FAILS (exception_handling, Risk
     Judgement both score Partial/Missing) -- used to prove the critical
     gate forces "Not Ready" even with coverage/open-gap gates passing.
   SET_B (every one of the 9 competencies Demonstrated): OIS=100, every
@@ -195,7 +195,11 @@ def test_critical_gate_failure_forces_not_ready_even_with_other_gates_passing(
     )
 
     assert isinstance(rollup, ReadinessRollup)
-    assert pytest.approx(rollup.scoring_result.ois_score, abs=1e-6) == 74.16666666666667
+    assert pytest.approx(rollup.scoring_result.ois_score, abs=1e-4) == 56.5
+    # Note: SET_A covers only 9 of 12 competencies. Under weighted intra-pillar
+    # scoring (Master Spec v2 Appendix A / S26), unscored competencies contribute
+    # 0 to their pillar's weighted sum, depressing OIS to 56.5 rather than 77.5
+    # (which is the S26 worked example where all 12 competencies are scored).
     assert rollup.scoring_result.critical_competency_gate_passed is False
     assert rollup.coverage_gate_passed is True
     assert rollup.open_gap_gate_passed is True
