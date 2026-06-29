@@ -54,31 +54,151 @@ def decision_color(decision: str | None) -> str:
 
 
 def inject_global_css() -> None:
-    """Apply the frozen palette to the page background, sidebar nav, and
-    Streamlit's default card-like containers. Called once per screen."""
+    """Apply the Genpact brand to the entire app.
+
+    Covers:
+    - Funnel Sans Variable (Genpact brand typeface) from Google Fonts,
+      applied globally to all Streamlit text, headings, inputs, and labels.
+    - Frozen Genpact colour palette on page background, sidebar, and cards.
+    - Sidebar brand header: geometric G cube SVG + product name + full form.
+
+    Safe to call from multiple screens -- guarded by st.session_state so the
+    sidebar header HTML is only injected once per session render pass.
+    """
+    # Guard: only inject the brand header once per page render to avoid
+    # stacking duplicate header blocks when multiple screens call this.
+    already_injected = st.session_state.get("_kt_css_injected", False)
+    st.session_state["_kt_css_injected"] = True
+
+    # Genpact G cube — isometric 3D line-art with G-notch cutout,
+    # built from the brand guide's logo geometry (Brand Playbook p.27/36).
+    # Stroke colour = Sunrise Gold (#FFAD28) to stand out on Midnight nav.
+    cube_svg = """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
+         width="44" height="44" style="flex-shrink:0;display:block;">
+      <!-- Top face (diamond) -->
+      <polygon points="50,8 88,29 50,50 12,29"
+               fill="none" stroke="#FFAD28" stroke-width="2.5"
+               stroke-linejoin="round"/>
+      <!-- Left face -->
+      <polygon points="12,29 12,71 50,92 50,50"
+               fill="none" stroke="#FFAD28" stroke-width="2.5"
+               stroke-linejoin="round"/>
+      <!-- Right face -->
+      <polygon points="88,29 88,71 50,92 50,50"
+               fill="none" stroke="#FFAD28" stroke-width="2.5"
+               stroke-linejoin="round"/>
+      <!-- G-notch on left face: outer cutout -->
+      <polyline points="24,40 24,78 44,89 44,60 36,55 36,68 28,64 28,44"
+                fill="none" stroke="#FFAD28" stroke-width="2.5"
+                stroke-linejoin="round" stroke-linecap="round"/>
+      <!-- G inner shelf -->
+      <line x1="36" y1="55" x2="44" y2="60"
+            stroke="#FFAD28" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    """
+
+    # CSS is always re-injected (Streamlit needs it on every render).
     st.markdown(
         f"""
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@300..800&display=swap"
+              rel="stylesheet">
         <style>
+        /* ── Global font: Funnel Sans Variable ── */
+        html, body, [class*="css"], .stApp,
+        .stMarkdown, .stText, h1, h2, h3, h4, h5, h6,
+        .stButton > button, .stSelectbox, .stTextInput,
+        .stMetric, label, .stDataFrame,
+        div[data-testid="stSidebarNav"] * {{
+            font-family: 'Funnel Sans', sans-serif !important;
+        }}
+
+        /* ── Page background ── */
         .stApp {{
             background-color: {PAGE_BG};
             color: {INK};
         }}
+
+        /* ── Sidebar: Midnight Black ── */
         section[data-testid="stSidebar"] {{
             background-color: {NAV_BG};
         }}
         section[data-testid="stSidebar"] * {{
             color: {PAGE_BG} !important;
+            font-family: 'Funnel Sans', sans-serif !important;
         }}
+
+        /* ── Sidebar nav: active page highlight ── */
+        div[data-testid="stSidebarNav"] a:hover {{
+            background-color: rgba(255, 173, 40, 0.12) !important;
+            border-radius: 6px;
+        }}
+        div[data-testid="stSidebarNav"] a[aria-current="page"] {{
+            background-color: rgba(255, 173, 40, 0.18) !important;
+            border-left: 3px solid #FFAD28 !important;
+            border-radius: 0 6px 6px 0;
+        }}
+
+        /* ── Metric cards ── */
         div[data-testid="stMetric"] {{
             background-color: {CARD_BG};
             border: 1px solid {BORDER};
             border-radius: 8px;
             padding: 12px;
         }}
+
+        /* ── Brand header block ── */
+        #kt-brand-header {{
+            padding: 20px 16px 16px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.10);
+            margin-bottom: 8px;
+        }}
+        #kt-brand-header .kt-logo-row {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }}
+        #kt-brand-header .kt-product-name {{
+            font-family: 'Funnel Sans', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #FFFFFF;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }}
+        #kt-brand-header .kt-full-form {{
+            font-family: 'Funnel Sans', sans-serif;
+            font-weight: 300;
+            font-size: 0.68rem;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.02em;
+            line-height: 1.4;
+            padding-left: 54px;
+        }}
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+    # Brand header HTML: inject only once per render pass.
+    if not already_injected:
+        st.sidebar.markdown(
+            f"""
+            <div id="kt-brand-header">
+              <div class="kt-logo-row">
+                {cube_svg}
+                <span class="kt-product-name">KT Assist</span>
+              </div>
+              <div class="kt-full-form">
+                Knowledge Transition &amp; Assurance Platform
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def badge_html(label: str, color: str) -> str:
