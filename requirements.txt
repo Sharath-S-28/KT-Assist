@@ -9,7 +9,7 @@ pydantic-settings==2.5.2
 alembic==1.13.3
 
 # --- Frontend (Phase 11) ---
-streamlit==1.38.0
+streamlit==1.45.0
 
 # --- LLM ---
 anthropic==0.34.2
@@ -31,7 +31,7 @@ reportlab==4.2.2
 python-dotenv==1.0.1
 python-multipart==0.0.9
 httpx==0.27.2
-tenacity==9.0.0
+tenacity>=8.1.0,<10
 
 # --- Testing ---
 pytest==8.3.3
