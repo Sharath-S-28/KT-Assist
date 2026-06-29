@@ -56,22 +56,20 @@ def decision_color(decision: str | None) -> str:
 def inject_global_css() -> None:
     """Apply the Genpact brand to the entire app.
 
-    Covers:
-    - st.logo() with the KT Assist logo PNG — Streamlit's official API for
-      placing branding above the sidebar nav. Works correctly when the sidebar
-      is collapsed/expanded (no CSS hacks needed).
-    - Funnel Sans Variable (Genpact brand typeface) via Google Fonts.
-    - Frozen Genpact colour palette on page background, sidebar, and cards.
-    - Removes Streamlit's default top padding on the main content area.
+    Brand header strategy:
+    - st.logo() with the full logo PNG (cube + name + subtitle).
+      CSS overrides Streamlit's hardcoded 2rem height cap on img.stLogo
+      so the image renders at a proper sidebar-filling size (~72px).
+    - icon_image= shows the cube-only PNG when the sidebar is collapsed.
+    - Funnel Sans Variable from Google Fonts applied globally.
+    - Frozen Genpact palette + Streamlit padding/toolbar cleanup.
 
-    Safe to call from multiple screens — logo and font links are idempotent
-    in Streamlit's rendering model.
+    Safe to call from multiple screens — st.logo() and st.markdown() are
+    both idempotent in Streamlit's rendering model.
     """
     import os
 
-    # ── st.logo() — official Streamlit API for sidebar branding ──
-    # image: full logo shown when sidebar is open.
-    # icon_image: cube-only icon shown when sidebar is collapsed.
+    # ── st.logo(): full logo expanded, cube icon collapsed ──
     logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "kt_logo.png")
     icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "kt_logo_icon.png")
     logo_path = os.path.normpath(logo_path)
@@ -95,7 +93,10 @@ def inject_global_css() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── CSS — plain string with .replace() for colour values ──
+    # ── CSS ──
+    # Note: img.stLogo height override unlocks Streamlit's hardcoded 2rem cap
+    # (largeLogoHeight in theme sizes). We set it to 72px so the full logo
+    # image (300x80) renders at a readable size filling the sidebar header.
     css = """
 <style>
 html, body, [class*="css"], .stApp,
@@ -115,6 +116,18 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] * {
     color: PAGE_BG_VAL !important;
     font-family: 'Funnel Sans', sans-serif !important;
+}
+
+/* Override Streamlit logo height cap — default is 2rem (32px) at size=large.
+   Set to auto so the image scales to fill the stSidebarHeader container width,
+   with a max-height cap we control instead of Streamlit's hardcoded value. */
+img.stLogo {
+    height: auto !important;
+    max-height: 72px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    object-position: left center !important;
 }
 
 /* Remove Streamlit default toolbar and top padding on main content */
