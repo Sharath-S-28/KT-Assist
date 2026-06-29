@@ -57,48 +57,26 @@ def inject_global_css() -> None:
     """Apply the Genpact brand to the entire app.
 
     Covers:
-    - Funnel Sans Variable (Genpact brand typeface) from Google Fonts,
-      applied globally to all Streamlit text, headings, inputs, and labels.
+    - st.logo() with the KT Assist logo PNG — Streamlit's official API for
+      placing branding above the sidebar nav. Works correctly when the sidebar
+      is collapsed/expanded (no CSS hacks needed).
+    - Funnel Sans Variable (Genpact brand typeface) via Google Fonts.
     - Frozen Genpact colour palette on page background, sidebar, and cards.
-    - Sidebar brand header: geometric G cube SVG + product name + full form.
+    - Removes Streamlit's default top padding on the main content area.
 
-    Safe to call from multiple screens -- guarded by st.session_state so the
-    sidebar header HTML is only injected once per session render pass.
+    Safe to call from multiple screens — logo and font links are idempotent
+    in Streamlit's rendering model.
     """
-    # Guard: only inject the brand header once per page render to avoid
-    # stacking duplicate header blocks when multiple screens call this.
-    already_injected = st.session_state.get("_kt_css_injected", False)
-    st.session_state["_kt_css_injected"] = True
+    import os
 
-    # Genpact G cube — isometric 3D line-art with G-notch cutout,
-    # built from the brand guide's logo geometry (Brand Playbook p.27/36).
-    # Stroke colour = Sunrise Gold (#FFAD28) to stand out on Midnight nav.
-    cube_svg = """
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
-         width="44" height="44" style="flex-shrink:0;display:block;">
-      <!-- Top face (diamond) -->
-      <polygon points="50,8 88,29 50,50 12,29"
-               fill="none" stroke="#FFAD28" stroke-width="2.5"
-               stroke-linejoin="round"/>
-      <!-- Left face -->
-      <polygon points="12,29 12,71 50,92 50,50"
-               fill="none" stroke="#FFAD28" stroke-width="2.5"
-               stroke-linejoin="round"/>
-      <!-- Right face -->
-      <polygon points="88,29 88,71 50,92 50,50"
-               fill="none" stroke="#FFAD28" stroke-width="2.5"
-               stroke-linejoin="round"/>
-      <!-- G-notch on left face: outer cutout -->
-      <polyline points="24,40 24,78 44,89 44,60 36,55 36,68 28,64 28,44"
-                fill="none" stroke="#FFAD28" stroke-width="2.5"
-                stroke-linejoin="round" stroke-linecap="round"/>
-      <!-- G inner shelf -->
-      <line x1="36" y1="55" x2="44" y2="60"
-            stroke="#FFAD28" stroke-width="2.5" stroke-linecap="round"/>
-    </svg>
-    """
+    # ── st.logo() — official Streamlit API for sidebar branding ──
+    # Renders the logo above the nav, survives sidebar collapse/expand.
+    logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "kt_logo.png")
+    logo_path = os.path.normpath(logo_path)
+    if os.path.exists(logo_path):
+        st.logo(logo_path, size="large")
 
-    # 1. Google Fonts — separate call, no f-string needed.
+    # ── Google Fonts ──
     st.markdown(
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
@@ -107,7 +85,7 @@ def inject_global_css() -> None:
         unsafe_allow_html=True,
     )
 
-    # 2. CSS — plain string with .replace() for colour values.
+    # ── CSS — plain string with .replace() for colour values ──
     css = """
 <style>
 html, body, [class*="css"], .stApp,
@@ -129,54 +107,13 @@ section[data-testid="stSidebar"] * {
     font-family: 'Funnel Sans', sans-serif !important;
 }
 
-/* ── Remove Streamlit's default top padding on main content ── */
+/* Remove Streamlit default toolbar and top padding on main content */
 .stApp > header { display: none; }
 div[data-testid="stAppViewContainer"] > section[data-testid="stMain"] > div {
     padding-top: 1.5rem !important;
 }
 
-/* ── Brand header: fixed at top of sidebar ── */
-#kt-brand-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 340px;
-    z-index: 999;
-    background-color: NAV_BG_VAL;
-    padding: 18px 16px 14px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    box-sizing: border-box;
-}
-#kt-brand-header .kt-logo-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 5px;
-}
-#kt-brand-header .kt-product-name {
-    font-family: 'Funnel Sans', sans-serif;
-    font-weight: 700;
-    font-size: 1.05rem;
-    color: #FFFFFF;
-    letter-spacing: -0.01em;
-    line-height: 1.2;
-}
-#kt-brand-header .kt-full-form {
-    font-family: 'Funnel Sans', sans-serif;
-    font-weight: 300;
-    font-size: 0.68rem;
-    color: rgba(255,255,255,0.55);
-    letter-spacing: 0.02em;
-    line-height: 1.4;
-    padding-left: 54px;
-}
-
-/* Push sidebar nav content down so it doesn't hide under the fixed header */
-div[data-testid="stSidebarNav"] {
-    margin-top: 90px;
-}
-
-/* Active nav item */
+/* Active nav item highlight */
 div[data-testid="stSidebarNav"] a:hover {
     background-color: rgba(255,173,40,0.12) !important;
     border-radius: 6px;
@@ -200,23 +137,6 @@ div[data-testid="stMetric"] {
     ).replace("CARD_BG_VAL", CARD_BG).replace("BORDER_VAL", BORDER)
 
     st.markdown(css, unsafe_allow_html=True)
-
-    # 3. Brand header — injected once per render pass via st.markdown
-    #    (not st.sidebar.markdown) so it renders into the DOM before the
-    #    sidebar nav, then CSS positions it fixed at top-left of the sidebar.
-    if not already_injected:
-        st.markdown(
-            "<div id='kt-brand-header'>"
-            "<div class='kt-logo-row'>"
-            + cube_svg
-            + "<span class='kt-product-name'>KT Assist</span>"
-            "</div>"
-            "<div class='kt-full-form'>"
-            "Knowledge Transition &amp; Assurance Platform"
-            "</div>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
 
 
 def badge_html(label: str, color: str) -> str:
