@@ -118,13 +118,20 @@ section[data-testid="stSidebar"] * {
     font-family: 'Funnel Sans', sans-serif !important;
 }
 
-/* Override Streamlit logo height cap — default is 2rem (32px) at size=large.
-   Set to auto so the image scales to fill the stSidebarHeader container width,
-   with a max-height cap we control instead of Streamlit's hardcoded value. */
-img.stLogo {
+/* Sidebar expanded: full logo at readable size (aria-expanded=true when open). */
+section[data-testid="stSidebar"][aria-expanded="true"] img.stLogo {
     height: auto !important;
     max-height: 72px !important;
     width: 100% !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    object-position: left center !important;
+}
+/* Sidebar collapsed: cube icon at half size (36px). */
+section[data-testid="stSidebar"][aria-expanded="false"] img.stLogo {
+    height: auto !important;
+    max-height: 36px !important;
+    width: auto !important;
     max-width: 100% !important;
     object-fit: contain !important;
     object-position: left center !important;
