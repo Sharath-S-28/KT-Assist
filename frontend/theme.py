@@ -98,105 +98,100 @@ def inject_global_css() -> None:
     </svg>
     """
 
-    # CSS is always re-injected (Streamlit needs it on every render).
+    # 1. Google Fonts — separate call, no f-string needed.
     st.markdown(
-        f"""
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@300..800&display=swap"
-              rel="stylesheet">
-        <style>
-        /* ── Global font: Funnel Sans Variable ── */
-        html, body, [class*="css"], .stApp,
-        .stMarkdown, .stText, h1, h2, h3, h4, h5, h6,
-        .stButton > button, .stSelectbox, .stTextInput,
-        .stMetric, label, .stDataFrame,
-        div[data-testid="stSidebarNav"] * {{
-            font-family: 'Funnel Sans', sans-serif !important;
-        }}
-
-        /* ── Page background ── */
-        .stApp {{
-            background-color: {PAGE_BG};
-            color: {INK};
-        }}
-
-        /* ── Sidebar: Midnight Black ── */
-        section[data-testid="stSidebar"] {{
-            background-color: {NAV_BG};
-        }}
-        section[data-testid="stSidebar"] * {{
-            color: {PAGE_BG} !important;
-            font-family: 'Funnel Sans', sans-serif !important;
-        }}
-
-        /* ── Sidebar nav: active page highlight ── */
-        div[data-testid="stSidebarNav"] a:hover {{
-            background-color: rgba(255, 173, 40, 0.12) !important;
-            border-radius: 6px;
-        }}
-        div[data-testid="stSidebarNav"] a[aria-current="page"] {{
-            background-color: rgba(255, 173, 40, 0.18) !important;
-            border-left: 3px solid #FFAD28 !important;
-            border-radius: 0 6px 6px 0;
-        }}
-
-        /* ── Metric cards ── */
-        div[data-testid="stMetric"] {{
-            background-color: {CARD_BG};
-            border: 1px solid {BORDER};
-            border-radius: 8px;
-            padding: 12px;
-        }}
-
-        /* ── Brand header block ── */
-        #kt-brand-header {{
-            padding: 20px 16px 16px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.10);
-            margin-bottom: 8px;
-        }}
-        #kt-brand-header .kt-logo-row {{
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 6px;
-        }}
-        #kt-brand-header .kt-product-name {{
-            font-family: 'Funnel Sans', sans-serif;
-            font-weight: 700;
-            font-size: 1.05rem;
-            color: #FFFFFF;
-            letter-spacing: -0.01em;
-            line-height: 1.2;
-        }}
-        #kt-brand-header .kt-full-form {{
-            font-family: 'Funnel Sans', sans-serif;
-            font-weight: 300;
-            font-size: 0.68rem;
-            color: rgba(255,255,255,0.55);
-            letter-spacing: 0.02em;
-            line-height: 1.4;
-            padding-left: 54px;
-        }}
-        </style>
-        """,
+        '<link rel="preconnect" href="https://fonts.googleapis.com">'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+        '<link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@300..800&display=swap"'
+        ' rel="stylesheet">',
         unsafe_allow_html=True,
     )
 
-    # Brand header HTML: inject only once per render pass.
+    # 2. CSS — build as plain string with .format() so curly braces in CSS
+    #    rules don't need escaping and can't accidentally be treated as
+    #    f-string interpolation targets.
+    css = """
+<style>
+html, body, [class*="css"], .stApp,
+.stMarkdown, .stText, h1, h2, h3, h4, h5, h6,
+.stButton > button, .stSelectbox, .stTextInput,
+.stMetric, label, .stDataFrame,
+div[data-testid="stSidebarNav"] * {
+    font-family: 'Funnel Sans', sans-serif !important;
+}
+.stApp {
+    background-color: PAGE_BG_VAL;
+    color: INK_VAL;
+}
+section[data-testid="stSidebar"] {
+    background-color: NAV_BG_VAL;
+}
+section[data-testid="stSidebar"] * {
+    color: PAGE_BG_VAL !important;
+    font-family: 'Funnel Sans', sans-serif !important;
+}
+div[data-testid="stSidebarNav"] a:hover {
+    background-color: rgba(255,173,40,0.12) !important;
+    border-radius: 6px;
+}
+div[data-testid="stSidebarNav"] a[aria-current="page"] {
+    background-color: rgba(255,173,40,0.18) !important;
+    border-left: 3px solid #FFAD28 !important;
+    border-radius: 0 6px 6px 0;
+}
+div[data-testid="stMetric"] {
+    background-color: CARD_BG_VAL;
+    border: 1px solid BORDER_VAL;
+    border-radius: 8px;
+    padding: 12px;
+}
+#kt-brand-header {
+    padding: 20px 16px 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    margin-bottom: 8px;
+}
+#kt-brand-header .kt-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+#kt-brand-header .kt-product-name {
+    font-family: 'Funnel Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+#kt-brand-header .kt-full-form {
+    font-family: 'Funnel Sans', sans-serif;
+    font-weight: 300;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    padding-left: 54px;
+}
+</style>
+""".replace("PAGE_BG_VAL", PAGE_BG).replace("INK_VAL", INK).replace(
+        "NAV_BG_VAL", NAV_BG
+    ).replace("CARD_BG_VAL", CARD_BG).replace("BORDER_VAL", BORDER)
+
+    st.markdown(css, unsafe_allow_html=True)
+
+    # 3. Brand header — sidebar only, once per render pass.
     if not already_injected:
         st.sidebar.markdown(
-            f"""
-            <div id="kt-brand-header">
-              <div class="kt-logo-row">
-                {cube_svg}
-                <span class="kt-product-name">KT Assist</span>
-              </div>
-              <div class="kt-full-form">
-                Knowledge Transition &amp; Assurance Platform
-              </div>
-            </div>
-            """,
+            "<div id='kt-brand-header'>"
+            "<div class='kt-logo-row'>"
+            + cube_svg
+            + "<span class='kt-product-name'>KT Assist</span>"
+            "</div>"
+            "<div class='kt-full-form'>"
+            "Knowledge Transition &amp; Assurance Platform"
+            "</div>"
+            "</div>",
             unsafe_allow_html=True,
         )
 
