@@ -103,7 +103,12 @@ def _screen10():
 
 
 def main() -> None:
-    st.set_page_config(page_title="KT Assist", layout="wide")
+    st.set_page_config(
+        page_title="KT Assist",
+        page_icon="🧊",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
 
     overview = st.Page(_screen1, title="Executive Dashboard", url_path="executive-dashboard", default=True)
     programs = st.Page(_screen2, title="Program Dashboard", url_path="program-dashboard")
