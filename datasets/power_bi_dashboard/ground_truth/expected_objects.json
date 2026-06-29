@@ -5,9 +5,11 @@
     "types": [
       {"object_type": "Process", "status": "Complete"},
       {"object_type": "Task", "status": "Complete"},
-      {"object_type": "System", "status": "Missing"},
-      {"object_type": "Business Rule", "status": "Partial"},
-      {"object_type": "Risk", "status": "Partial"}
+      {"object_type": "System", "status": "Partial"},
+      {"object_type": "Dependency", "status": "Complete"},
+      {"object_type": "Control", "status": "Partial"},
+      {"object_type": "Escalation", "status": "Partial"},
+      {"object_type": "Known Issue", "status": "Missing"}
     ]
   },
   "final": {
@@ -16,9 +18,11 @@
       {"object_type": "Process", "status": "Complete"},
       {"object_type": "Task", "status": "Complete"},
       {"object_type": "System", "status": "Complete"},
-      {"object_type": "Business Rule", "status": "Partial"},
-      {"object_type": "Risk", "status": "Complete"}
+      {"object_type": "Dependency", "status": "Complete"},
+      {"object_type": "Control", "status": "Complete"},
+      {"object_type": "Escalation", "status": "Partial"},
+      {"object_type": "Known Issue", "status": "Missing"}
     ]
   },
-  "note": "package_type/required/optional are derived from the real config.KNOWLEDGE_TYPE_TEMPLATES['Dashboard'] profile (Process, Task, System, Business Rule required; Risk optional) -- not the Phase 13 spec's illustrative Dashboard profile text. Business Rule is intentionally left Partial in the final state (no gap-answer script closes it) so the dataset's final coverage lands below 100%, matching the spec's ~89% target rather than a full close."
+  "note": "[PROPOSAL ruling, KTTL Chunk 2 reconciliation]: package_type/required/optional are derived from the real config.KNOWLEDGE_TYPE_TEMPLATES['Dashboard'] profile as it now reads -- required=[Process, Task, System, Dependency, Control, Escalation] (6 at Critical weight 3 = 18), optional=[Known Issue] (1 at Supporting weight 1) = 19 total denominator points. The prior profile (Process, Task, System, Business Rule required; Risk optional) is stale; Business Rule and Risk are no longer part of the Dashboard profile at all. The extraction_mock was redesigned so the graph scores cleanly as pure Dashboard (no blending with Operations, which now shares 5 of 6 required types with Dashboard) -- see services/kttl.py BLEND_SCORE_GAP/BLEND_MIN_SCORE: omitting System entirely (as the old fixture did) made Dashboard's required_recall drop enough to fall inside the blend gap against Operations, so System is now present-but-Partial (empty description) instead of Missing. Escalation is intentionally left Partial and Known Issue intentionally left Missing in the final state (no gap-answer step closes either) so the dataset's final coverage lands below 100%."
 }

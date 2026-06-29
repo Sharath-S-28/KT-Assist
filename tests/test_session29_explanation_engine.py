@@ -55,12 +55,12 @@ _RESPONSE_FOR = {
     "Missing": _MISSING_RESPONSE,
 }
 
-# Exactly one failing critical competency (System Operation, critical,
+# Exactly one failing critical competency (exception_handling, critical,
 # OE pillar) -> mirrors the Chunk 6 worked-example shape (one critical
 # competency below threshold drives the whole "Not Ready" sentence).
 # Every other competency Demonstrated so only one reason token fires.
 _SET_NOT_READY = {name: "Demonstrated" for name in config.COMPETENCY_CATALOG}
-_SET_NOT_READY["System Operation"] = "Missing"
+_SET_NOT_READY["exception_handling"] = "Missing"
 
 
 # ---------------------------------------------------------------------------
@@ -154,9 +154,9 @@ def _coverage_result(db_session, sample_package, graph_version_id, sufficiency_g
 @pytest.fixture()
 def not_ready_readiness_id(db_session, sample_package, sample_participant, assessment_package_id, graph_version_id):
     """A full KASE rollup with exactly one failing critical competency
-    (System Operation) and two scenarios traced back to real graph
-    elements: one object-sourced (Process Execution -> p1) and one
-    relationship-sourced (Task Sequencing -> r1, which resolves to
+    (exception_handling) and two scenarios traced back to real graph
+    elements: one object-sourced (process_execution -> p1) and one
+    relationship-sourced (tool_proficiency -> r1, which resolves to
     p1/t1)."""
     pairs = _build_scenario_responses(
         db_session,
@@ -164,8 +164,8 @@ def not_ready_readiness_id(db_session, sample_package, sample_participant, asses
         sample_participant.id,
         _SET_NOT_READY,
         source_for={
-            "Process Execution": ("object", "p1"),
-            "Task Sequencing": ("relationship", "r1"),
+            "process_execution": ("object", "p1"),
+            "tool_proficiency": ("relationship", "r1"),
         },
     )
     coverage_result = _coverage_result(db_session, sample_package, graph_version_id)
@@ -216,8 +216,8 @@ def test_data_layer_never_applies_arithmetic_to_score_fields():
 
 def _sample_explanation_data() -> ExplanationData:
     competency = CompetencyFact(
-        competency_id="System Operation",
-        name="System Operation",
+        competency_id="exception_handling",
+        name="exception_handling",
         score=62.0,
         weight=0.5,
         is_critical=True,
@@ -244,9 +244,9 @@ def _sample_explanation_data() -> ExplanationData:
         certification=None,
         pillars=[pillar],
         gates=[
-            GateFact(gate_id="critical_competency", passed=False, observed=62.0, threshold=70.0, failing_items=["System Operation"]),
+            GateFact(gate_id="critical_competency", passed=False, observed=62.0, threshold=70.0, failing_items=["exception_handling"]),
         ],
-        primary_failure_reasons=["critical_competency:System Operation"],
+        primary_failure_reasons=["critical_competency:exception_handling"],
     )
 
 
@@ -264,7 +264,7 @@ def test_template_layer_reproduces_frozen_chunk6_sentence():
     template = ExplanationTemplateLayer().render(data)
 
     assert template.decision_sentence == (
-        "Receiver is NOT READY because System Operation scored 62, "
+        "Receiver is NOT READY because exception_handling scored 62, "
         "below the critical threshold of 70."
     )
     assert template.missing_evidence_sentences == ["Missing evidence: EH-03, EH-04, EH-06."]
@@ -279,10 +279,10 @@ def test_data_layer_build_yields_not_ready_with_one_failing_competency(db_sessio
 
     assert isinstance(data, ExplanationData)
     assert data.readiness_decision == "Not Ready"
-    assert data.primary_failure_reasons == ["critical_competency:System Operation"]
+    assert data.primary_failure_reasons == ["critical_competency:exception_handling"]
 
     system_op = next(
-        c for pillar in data.pillars for c in pillar.competencies if c.competency_id == "System Operation"
+        c for pillar in data.pillars for c in pillar.competencies if c.competency_id == "exception_handling"
     )
     assert system_op.score == 0.0
     assert system_op.passed_gate is False
@@ -293,12 +293,12 @@ def test_data_layer_resolves_object_and_relationship_sourced_scenarios(db_sessio
     data = ExplanationDataLayer(db_session).build(not_ready_readiness_id)
 
     process_execution = next(
-        c for pillar in data.pillars for c in pillar.competencies if c.competency_id == "Process Execution"
+        c for pillar in data.pillars for c in pillar.competencies if c.competency_id == "process_execution"
     )
     assert process_execution.evidence[0].knowledge_object_ids == ["p1"]
 
     task_sequencing = next(
-        c for pillar in data.pillars for c in pillar.competencies if c.competency_id == "Task Sequencing"
+        c for pillar in data.pillars for c in pillar.competencies if c.competency_id == "tool_proficiency"
     )
     assert sorted(task_sequencing.evidence[0].knowledge_object_ids) == ["p1", "t1"]
 
@@ -345,7 +345,7 @@ def test_guard_accepts_narrative_using_only_traceable_numbers():
     template = ExplanationTemplateLayer().render(data)
 
     good_client = _StubClaudeClient(
-        "System Operation scored 62, short of the 70 threshold required for this critical competency."
+        "exception_handling scored 62, short of the 70 threshold required for this critical competency."
     )
     layer = ExplanationNarrativeLayer(good_client)
     result = layer.generate(data, template)
@@ -368,7 +368,7 @@ def test_traceability_tree_resolves_all_seven_levels(db_session, not_ready_readi
     assert ois_node.level == "ois"
 
     pillar_node = next(p for p in ois_node.children if p.id == "OE")
-    competency_node = next(c for c in pillar_node.children if c.id == "Process Execution")
+    competency_node = next(c for c in pillar_node.children if c.id == "process_execution")
     evidence_node = competency_node.children[0]
     assert evidence_node.level == "evidence"
     scenario_node = evidence_node.children[0]
@@ -376,9 +376,9 @@ def test_traceability_tree_resolves_all_seven_levels(db_session, not_ready_readi
     ko_ids = {child.id for child in scenario_node.children}
     assert ko_ids == {"p1"}
 
-    # Relationship-sourced path: Task Sequencing's scenario resolves to
+    # Relationship-sourced path: tool_proficiency's scenario resolves to
     # both endpoints of relationship r1.
-    task_competency_node = next(c for c in pillar_node.children if c.id == "Task Sequencing")
+    task_competency_node = next(c for c in pillar_node.children if c.id == "tool_proficiency")
     task_scenario_node = task_competency_node.children[0].children[0]
     task_ko_ids = {child.id for child in task_scenario_node.children}
     assert task_ko_ids == {"p1", "t1"}

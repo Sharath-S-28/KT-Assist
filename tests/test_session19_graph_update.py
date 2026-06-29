@@ -3,21 +3,27 @@ tests/test_session19_graph_update.py — Phase 6 / Session 19 success
 criterion: closing a gap raises coverage and produces a labelled new
 graph version with a delta.
 
-Worked example reused throughout (same Dashboard package as Sessions
-15-17): Process Complete, Task Partial (empty description), System
-Missing, Business Rule Complete, Risk Complete.
-  weights: Process=3, Task=3, System=3, Business Rule=3, Risk=1 -> total=13
-  v1 observed: Process(3) + Task(1.5) + Business Rule(3) + Risk(1) = 8.5
-  v1 coverage_score = 8.5 / 13 = 0.6538461538461539
+[PROPOSAL ruling, KTTL Chunk 2 reconciliation]: the worked example below
+was redesigned because the prior Dashboard-flavored 13-point example no
+longer reflects the new KTTL profiles. The new package now cleanly
+auto-detects as Python Application (required: Process/Task/System/
+Dependency/Risk/Control/Business Rule, optional: Known Issue) --
+verified via services.kttl.detect_package_template -- with Process,
+System, Dependency, Risk, Business Rule, and Known Issue all Complete,
+Task Partial (empty description), and Control Missing entirely.
+  weights: 7 required types * 3 + 1 optional type * 1 -> total = 22
+  v1 observed: Process(3) + Task(1.5) + System(3) + Dependency(3) +
+    Risk(3) + Business Rule(3) + Known Issue(1) + Control(0) = 17.5
+  v1 coverage_score = 17.5 / 22 = 0.7954545454545454
 
-Step 1 -- close the System gap only (create a described System object):
-  observed: 8.5 + 3 = 11.5 -> coverage = 11.5/13 = 0.8846153846153846
+Step 1 -- close the Control gap only (create a described Control object):
+  observed: 17.5 + 3 = 20.5 -> coverage = 20.5/22 = 0.9318181818181818
   Task is still Partial (required -> Critical criticality, Medium risk),
   so has_critical_gap stays True even though coverage now clears 0.85 --
   loop_terminated must stay False.
 
 Step 2 -- also close the Task gap (update Task's description):
-  observed: 11.5 - 1.5 + 3 = 13.0 -> coverage = 1.0, no gaps remain --
+  observed: 20.5 - 1.5 + 3 = 22.0 -> coverage = 1.0, no gaps remain --
   loop_terminated must become True.
 """
 
@@ -36,25 +42,29 @@ from utils.errors import ValidationFailedError
 
 
 def _seed_worked_example_v1(db_session, package_id):
-    """Process Complete, Task Partial, Business Rule Complete, Risk
-    Complete, System missing entirely -- the now-familiar 8.5/13 graph."""
+    """Process/System/Dependency/Risk/Business Rule/Known Issue Complete,
+    Task Partial, Control missing entirely -- the now-familiar 17.5/22
+    Python Application graph."""
     nodes = [
         KnowledgeObject(id="p1", object_type="Process", name="Process", description="Closes the books monthly.", criticality="Important"),
         KnowledgeObject(id="t1", object_type="Task", name="Task", description="", criticality="Important"),
-        KnowledgeObject(id="b1", object_type="Business Rule", name="Business Rule", description="GL must balance to zero.", criticality="Important"),
+        KnowledgeObject(id="s1", object_type="System", name="System", description="SAP FI is the system of record.", criticality="Important"),
+        KnowledgeObject(id="d1", object_type="Dependency", name="Dependency", description="Upstream GL feed.", criticality="Important"),
         KnowledgeObject(id="r1", object_type="Risk", name="Risk", description="Late close risk.", criticality="Important"),
+        KnowledgeObject(id="b1", object_type="Business Rule", name="Business Rule", description="GL must balance to zero.", criticality="Important"),
+        KnowledgeObject(id="k1", object_type="Known Issue", name="Known Issue", description="Known late-feed lag.", criticality="Important"),
     ]
     return save_graph_version(db_session, package_id, nodes, relationships=[])
 
 
-def _system_closure_interpretation():
+def _control_closure_interpretation():
     return InterpretationResult(
-        gap_object_type="System",
-        raw_text="We use SAP FI to run the GL close.",
+        gap_object_type="Control",
+        raw_text="We run a month-end close checklist control.",
         object_changes=[
             InterpretedObjectChange(
-                action="create", object_type="System", name="SAP FI",
-                description="SAP FI is the system of record for the GL close.",
+                action="create", object_type="Control", name="Close Checklist",
+                description="Month-end close checklist control.",
                 criticality="Important",
             )
         ],
@@ -69,24 +79,24 @@ def _system_closure_interpretation():
 def test_close_gap_increments_version_and_produces_labelled_change_summary(db_session, sample_package):
     _seed_worked_example_v1(db_session, sample_package.id)
 
-    result = close_gap(db_session, sample_package.id, _system_closure_interpretation())
+    result = close_gap(db_session, sample_package.id, _control_closure_interpretation())
 
     assert isinstance(result, GraphUpdateResult)
     assert result.previous_version == 1
     assert result.new_version == 2
     assert result.change_summary.startswith("Gap closure:")
-    assert "System" in result.change_summary
+    assert "Control" in result.change_summary
 
 
 def test_db_version_row_persists_the_change_summary(db_session, sample_package):
     _seed_worked_example_v1(db_session, sample_package.id)
-    close_gap(db_session, sample_package.id, _system_closure_interpretation())
+    close_gap(db_session, sample_package.id, _control_closure_interpretation())
 
     versions = list_graph_versions(db_session, sample_package.id)
     assert [v.version_number for v in versions] == [1, 2]
     assert versions[0].change_summary is None
     assert versions[1].change_summary is not None
-    assert "System" in versions[1].change_summary
+    assert "Control" in versions[1].change_summary
 
 
 # ---------------------------------------------------------------------------
@@ -96,18 +106,18 @@ def test_db_version_row_persists_the_change_summary(db_session, sample_package):
 def test_closing_one_gap_raises_coverage_by_the_exact_expected_delta(db_session, sample_package):
     _seed_worked_example_v1(db_session, sample_package.id)
 
-    result = close_gap(db_session, sample_package.id, _system_closure_interpretation())
+    result = close_gap(db_session, sample_package.id, _control_closure_interpretation())
 
-    assert result.previous_coverage_score == pytest.approx(8.5 / 13)
-    assert result.new_coverage_score == pytest.approx(11.5 / 13)
-    assert result.coverage_delta == pytest.approx(3 / 13)
+    assert result.previous_coverage_score == pytest.approx(17.5 / 22)
+    assert result.new_coverage_score == pytest.approx(20.5 / 22)
+    assert result.coverage_delta == pytest.approx(3 / 22)
     assert result.coverage_delta > 0
 
 
 def test_partial_closure_does_not_terminate_the_loop_due_to_remaining_critical_gap(db_session, sample_package):
     _seed_worked_example_v1(db_session, sample_package.id)
 
-    result = close_gap(db_session, sample_package.id, _system_closure_interpretation())
+    result = close_gap(db_session, sample_package.id, _control_closure_interpretation())
 
     # Coverage now clears 0.85, but Task is still Partial/Critical -- the
     # gate must still fail, and must agree exactly with KVAResult.is_sufficient.
@@ -123,7 +133,7 @@ def test_partial_closure_does_not_terminate_the_loop_due_to_remaining_critical_g
 
 def test_fully_closing_remaining_gap_terminates_the_loop(db_session, sample_package):
     _seed_worked_example_v1(db_session, sample_package.id)
-    first = close_gap(db_session, sample_package.id, _system_closure_interpretation())
+    first = close_gap(db_session, sample_package.id, _control_closure_interpretation())
     assert first.loop_terminated is False
 
     # The Task node's id is stable across versions ("t1" from the seed) --
@@ -145,9 +155,9 @@ def test_fully_closing_remaining_gap_terminates_the_loop(db_session, sample_pack
 
     assert second.previous_version == 2
     assert second.new_version == 3
-    assert second.previous_coverage_score == pytest.approx(11.5 / 13)
+    assert second.previous_coverage_score == pytest.approx(20.5 / 22)
     assert second.new_coverage_score == pytest.approx(1.0)
-    assert second.coverage_delta == pytest.approx(1.5 / 13)
+    assert second.coverage_delta == pytest.approx(1.5 / 22)
     assert second.kva_result.gaps == []
     assert second.loop_terminated is True
     assert second.loop_terminated == second.kva_result.is_sufficient

@@ -2,22 +2,22 @@
   "steps": [
     {
       "object_type": "System",
-      "action": "create",
-      "name": "SAP FI",
-      "description": "SAP FI is the system of record that drives the GL close and feeds the Power BI dataset refresh.",
-      "target_object_id": null
+      "action": "update",
+      "name": "Power BI Dataset",
+      "description": "The Power BI dataset connects directly to SAP FI and refreshes nightly from the GL.",
+      "target_object_id": "s1"
     },
     {
-      "object_type": "Risk",
+      "object_type": "Control",
       "action": "update",
-      "name": "Late Close Risk",
-      "description": "Mitigated by escalating to the GL Accounting Lead within 4 hours of a missed close checkpoint; risk owner is Finance Operations.",
-      "target_object_id": "r1"
+      "name": "Refresh Validation Control",
+      "description": "Finance validates the refreshed dashboard totals against the GL trial balance each morning.",
+      "target_object_id": "c1"
     }
   ],
-  "intentionally_unresolved": ["Business Rule"],
-  "rationale": "Business Rule (GL Balance Rule) deliberately has no gap-answer step: per Phase 13's own [PROPOSAL ruling], the dataset's final coverage must land below 100% to match the spec's ~89% target, and leaving one Partial type unresolved is a more realistic worked example than a contrived full close.",
-  "expected_final_coverage_target": 0.89,
-  "coverage_tolerance": 0.02,
-  "note": "DatasetValidator applies these two steps via services.graph_update.close_gap against a real running KVA, and records the measured coverage after each step in ground_truth/coverage_curve.json -- the target above is illustrative only."
+  "intentionally_unresolved": ["Escalation", "Known Issue"],
+  "rationale": "[PROPOSAL ruling, KTTL Chunk 2 reconciliation]: gap-answer steps follow the real gap order (per_type / template required-then-optional insertion order) -- System first, then Control, matching what DatasetValidator's close_gaps-style loop actually produces. Escalation (Stale Dashboard Escalation) and Known Issue deliberately have no gap-answer step: leaving the optional type Missing and one required type Partial unresolved keeps the dataset's final coverage below 100%, a more realistic worked example than a contrived full close.",
+  "expected_final_coverage_target": 0.868421052631579,
+  "coverage_tolerance": 0.01,
+  "note": "DatasetValidator applies these two steps via services.graph_update.close_gap against a real running KVA, and records the measured coverage after each step in ground_truth/coverage_curve.json -- the target above is the real measured value, not illustrative."
 }

@@ -1,12 +1,13 @@
 {
-  "omitted_types": ["System"],
-  "partial_types": ["Business Rule", "Risk"],
+  "omitted_types": ["Known Issue"],
+  "partial_types": ["System", "Control", "Escalation"],
   "rationale": {
-    "System": "The source document explicitly defers describing 'which system of record drives the GL close' -- KAI has nothing to extract, so this required type is genuinely Missing, not merely unextracted.",
-    "Business Rule": "The GL Balance Rule is named but its owner sign-off / balancing checklist is explicitly deferred in the source text, producing an object with an empty description (Partial).",
-    "Risk": "The Late Close risk is named but its mitigation/owner is explicitly deferred in the source text, producing an object with an empty description (Partial)."
+    "Known Issue": "The source document does not surface any known issue with the dashboard refresh -- KAI has nothing to extract, so this optional type is genuinely Missing, not merely unextracted.",
+    "System": "The Power BI Dataset is named but which upstream system of record actually drives it is explicitly deferred in the source text, producing an object with an empty description (Partial).",
+    "Control": "The Refresh Validation Control is named but its validation procedure is explicitly deferred in the source text, producing an object with an empty description (Partial).",
+    "Escalation": "The Stale Dashboard Escalation is named but its escalation path/owner is explicitly deferred in the source text, producing an object with an empty description (Partial)."
   },
-  "expected_initial_coverage_target": 0.63,
-  "coverage_tolerance": 0.02,
-  "note": "Target is the Phase 13 spec's illustrative ~63%; the real engine's discrete Complete/Partial/Missing x weight arithmetic against the real Dashboard profile (4 required @ Critical=3 + 1 optional @ Supporting=1, total=13 points) cannot land on every percentage exactly. DatasetValidator measures the real value; see ground_truth/coverage_curve.json for the actual measured numbers this dataset converged on."
+  "expected_initial_coverage_target": 0.7105263157894737,
+  "coverage_tolerance": 0.01,
+  "note": "[PROPOSAL ruling, KTTL Chunk 2 reconciliation]: target is the real, measured initial coverage under the new Dashboard profile (6 required at Critical=3 + 1 optional at Supporting=1, total=19 points: Process Complete(3) + Task Complete(3) + System Partial(1.5) + Dependency Complete(3) + Control Partial(1.5) + Escalation Partial(1.5) + Known Issue Missing(0) = 13.5/19), measured via DatasetValidator against the real Coverage Engine -- not hand-computed. See ground_truth/coverage_curve.json for the full measured curve."
 }

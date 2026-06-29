@@ -20,10 +20,17 @@ GOLDEN_TOLERANCE) against the real dataset's numbers; faking a
 hand-built substitute that merely happens to produce those numbers
 would create a false sense of having validated the real scenario.
 
-The worked example reused here is deliberately the same Process/Task/
-Business-Rule/Risk/System graph from tests/test_session19_graph_update.py
-(the one graph in this repo already hand-verified to go 8.5/13 ->
-11.5/13 -> 13/13 across exactly two gap closures) -- reusing a fixture
+[PROPOSAL ruling, KTTL Chunk 2 reconciliation]: the worked example was
+redesigned because the prior 4-object Process/Task/Business-Rule/Risk
+graph no longer cleanly auto-detects with a single System gap under
+the new KTTL profiles -- Python Application now requires 7 types, and
+that 4-object graph produced 5 gaps instead of 1. The worked example
+reused here is now the same 7-node Process/Task/System/Dependency/Risk/
+Business-Rule/Known-Issue graph from tests/test_session19_graph_update.py
+(the one graph in this repo already hand-verified to go 17.5/22 ->
+20.5/22 [actually closes Task first here, since gap order follows
+per_type/template order: Task before Control] -> 19/22 -> 22/22 across
+exactly two gap closures, Task then Control) -- reusing a fixture
 already proven correct end-to-end, rather than inventing a new one,
 keeps this test's own arithmetic auditable against an existing,
 independently-verified worked example.
@@ -45,34 +52,28 @@ EXTRACTION_MOCK = {
          "criticality": "Important", "confidence": 0.9},
         {"id": "t1", "object_type": "Task", "name": "Task", "description": "",
          "criticality": "Important", "confidence": 0.9},
-        {"id": "b1", "object_type": "Business Rule", "name": "Business Rule", "description": "GL must balance to zero.",
+        {"id": "s1", "object_type": "System", "name": "System", "description": "SAP FI is the system of record.",
+         "criticality": "Important", "confidence": 0.9},
+        {"id": "d1", "object_type": "Dependency", "name": "Dependency", "description": "Upstream GL feed.",
          "criticality": "Important", "confidence": 0.9},
         {"id": "r1", "object_type": "Risk", "name": "Risk", "description": "Late close risk.",
          "criticality": "Important", "confidence": 0.9},
+        {"id": "b1", "object_type": "Business Rule", "name": "Business Rule", "description": "GL must balance to zero.",
+         "criticality": "Important", "confidence": 0.9},
+        {"id": "k1", "object_type": "Known Issue", "name": "Known Issue", "description": "Known late-feed lag.",
+         "criticality": "Important", "confidence": 0.9},
     ]
 }
-BOUNDARY_MOCK = {"verdicts": [{"object_id": oid, "verdict": "confirm"} for oid in ("p1", "t1", "b1", "r1")]}
+BOUNDARY_MOCK = {"verdicts": [{"object_id": oid, "verdict": "confirm"} for oid in ("p1", "t1", "s1", "d1", "r1", "b1", "k1")]}
 RELATIONSHIP_MOCK = {"relationships": []}
 
 
 def _interpretation_for_gap(kva_result):
     """Mirrors test_session19_graph_update.py's two-step closure exactly:
-    System first (create), then Task (update its empty description)."""
+    Task first (update its empty description), then Control (create)."""
     if not kva_result.gaps:
         return None
     gap = kva_result.gaps[0]
-    if gap.object_type == "System":
-        return InterpretationResult(
-            gap_object_type="System",
-            raw_text="We use SAP FI to run the GL close.",
-            object_changes=[
-                InterpretedObjectChange(
-                    action="create", object_type="System", name="SAP FI",
-                    description="SAP FI is the system of record for the GL close.",
-                    criticality="Important",
-                )
-            ],
-        )
     if gap.object_type == "Task":
         return InterpretationResult(
             gap_object_type="Task",
@@ -82,6 +83,18 @@ def _interpretation_for_gap(kva_result):
                     action="update", object_type="Task", name="Task",
                     description="We reconcile sub-ledgers daily before the close.",
                     criticality="Important", target_object_id="t1",
+                )
+            ],
+        )
+    if gap.object_type == "Control":
+        return InterpretationResult(
+            gap_object_type="Control",
+            raw_text="We run a month-end close checklist control.",
+            object_changes=[
+                InterpretedObjectChange(
+                    action="create", object_type="Control", name="Close Checklist",
+                    description="Month-end close checklist control.",
+                    criticality="Important",
                 )
             ],
         )
@@ -103,13 +116,13 @@ def test_structural_end_to_end_workflow(db_session, sample_program, sample_packa
         extraction_mock=EXTRACTION_MOCK, boundary_mocks=[BOUNDARY_MOCK], relationship_mock=RELATIONSHIP_MOCK,
     )
     assert kai_result.graph_version.version_number == 1
-    assert kai_result.graph_payload.node_count == 4
+    assert kai_result.graph_payload.node_count == 7
 
     # Stage 2: Coverage / Sufficiency -- initial KVA read (matches the
-    # 8.5/13 worked example: not yet sufficient).
+    # 17.5/22 worked example: not yet sufficient).
     initial_kva = runner.validate(sample_package.id)
     assert initial_kva.is_sufficient is False
-    assert initial_kva.coverage_score == pytest.approx(8.5 / 13, abs=GOLDEN_TOLERANCE)
+    assert initial_kva.coverage_score == pytest.approx(17.5 / 22, abs=GOLDEN_TOLERANCE)
 
     # Stage 3: Gap Closure Loop -- must terminate sufficient within the
     # two canned answers above, exactly like test_session19's worked example.

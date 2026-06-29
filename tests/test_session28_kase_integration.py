@@ -17,7 +17,7 @@ arbitration is a non-event:
 
 Two scenario sets:
   SET_A (worked example, mirrors test_session26_kase_scoring.py): OIS
-    ~74.17, critical competency gate FAILS (System Operation, Risk
+    ~74.17, critical competency gate FAILS (exception_handling, Risk
     Judgement both score Partial/Missing) -- used to prove the critical
     gate forces "Not Ready" even with coverage/open-gap gates passing.
   SET_B (every one of the 9 competencies Demonstrated): OIS=100, every
@@ -54,15 +54,15 @@ _RESPONSE_FOR = {
 # competency_name -> intended detection status, mirroring the Session 26
 # worked example (OE=83.33, SA=75, GC=100, CC=50, OIS=74.1666...).
 _SET_A = {
-    "Process Execution": "Demonstrated",      # OE, critical
-    "Task Sequencing": "Demonstrated",        # OE
-    "System Operation": "Partial",            # OE, critical -> 50, below gate
-    "Dependency Awareness": "Partial",         # SA
-    "Business Rule Compliance": "Demonstrated",  # GC, critical
-    "Risk Judgement": "Missing",               # CC, critical -> 0, below gate
-    "Control Application": "Demonstrated",     # GC
-    "Escalation Judgement": "Demonstrated",    # SA, critical
-    "Known Issue Handling": "Demonstrated",    # CC, critical
+    "process_execution": "Demonstrated",      # OE, critical
+    "tool_proficiency": "Demonstrated",        # OE
+    "exception_handling": "Partial",            # OE, critical -> 50, below gate
+    "risk_awareness": "Partial",         # SA
+    "compliance_control_awareness": "Demonstrated",  # GC, critical
+    "decision_making": "Missing",               # CC, critical -> 0, below gate
+    "knowledge_stewardship": "Demonstrated",     # GC
+    "escalation_awareness": "Demonstrated",    # SA, critical
+    "problem_solving": "Demonstrated",    # CC, critical
 }
 
 # Every competency Demonstrated -> every pillar = 100, OIS = 100.
@@ -158,7 +158,7 @@ def test_evidence_markers_for_scenario_reconstructs_deterministic_ids(db_session
         difficulty="L1",
         situation="x",
         expected_evidence_json=json.dumps(["marker one", "marker two"]),
-        competency_mapping_json=json.dumps(["Process Execution"]),
+        competency_mapping_json=json.dumps(["process_execution"]),
         validation_status="Passed",
     )
     db_session.add(scenario)

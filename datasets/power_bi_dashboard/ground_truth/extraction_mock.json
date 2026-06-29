@@ -17,17 +17,33 @@
       "confidence": 0.9
     },
     {
-      "id": "b1",
-      "object_type": "Business Rule",
-      "name": "GL Balance Rule",
+      "id": "s1",
+      "object_type": "System",
+      "name": "Power BI Dataset",
       "description": "",
       "criticality": "Important",
       "confidence": 0.9
     },
     {
-      "id": "r1",
-      "object_type": "Risk",
-      "name": "Late Close Risk",
+      "id": "d1",
+      "object_type": "Dependency",
+      "name": "Upstream GL Feed",
+      "description": "Upstream GL feed from the regional ledgers feeds the dashboard refresh.",
+      "criticality": "Important",
+      "confidence": 0.9
+    },
+    {
+      "id": "c1",
+      "object_type": "Control",
+      "name": "Refresh Validation Control",
+      "description": "",
+      "criticality": "Important",
+      "confidence": 0.9
+    },
+    {
+      "id": "e1",
+      "object_type": "Escalation",
+      "name": "Stale Dashboard Escalation",
       "description": "",
       "criticality": "Important",
       "confidence": 0.9

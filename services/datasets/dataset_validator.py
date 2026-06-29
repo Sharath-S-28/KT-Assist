@@ -191,14 +191,24 @@ class DatasetValidator:
         against a real ingested package (as D1-D3's extraction/coverage
         validation correctly does) was tried first and rejected: KRA's
         scenario generation for the Power BI Dashboard profile only
-        ever yields 3 coarse scenarios covering 6 of the 9 catalog
-        competencies (Task Sequencing, Dependency Awareness, Control
-        Application never appear, since no Dependency/Control object
-        exists in that profile), and every scenario response status is
-        applied at the whole-scenario granularity -- so the only
-        achievable Critical-Gate-passing outcome in that graph is a
-        clean sweep (OIS=100), making a "Conditionally Ready" golden
-        example structurally unreachable there.
+        ever yields a handful of coarse scenarios covering a subset of
+        the 12 catalog competencies (several competencies never appear,
+        since no matching object type exists in that profile), and
+        every scenario response status is applied at the
+        whole-scenario granularity -- so the only achievable
+        Critical-Gate-passing outcome in that graph is a clean sweep
+        (OIS=100), making a "Conditionally Ready" golden example
+        structurally unreachable there.
+
+        [PROPOSAL ruling, OIF Chunk 3 reconciliation]: now that the
+        catalog has 12 real competencies (was 9), every golden
+        response in datasets/golden/golden_responses.json explicitly
+        lists a strategy for all 12 -- any competency a future golden
+        response omits silently defaults to "Demonstrated" below, which
+        is enough to flip a critical competency's gate or shift a
+        pillar mean if forgotten, so new golden responses should list
+        every catalog key explicitly rather than relying on the
+        default.
 
         D8 instead reuses test_session28_kase_integration.py's own
         proven technique directly: one synthetic Scenario (with one
@@ -237,6 +247,13 @@ class DatasetValidator:
 
         pairs = []
         for competency_name in config.COMPETENCY_CATALOG:
+            if competency_name in config.COMPETENCY_CATALOG_LEGACY_ALIASES:
+                # [PROPOSAL ruling, OIF Chunk 3 reconciliation]: skip the
+                # two legacy alias keys kept only for
+                # tests/invariants/test_architectural_boundaries.py --
+                # they are not real competencies and would dilute the OE
+                # pillar average if scored here.
+                continue
             status = golden.competency_response_strategy.get(competency_name, "Demonstrated")
             scenario = ScenarioRow(
                 assessment_package_id=assessment_package.id,

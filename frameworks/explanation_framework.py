@@ -102,38 +102,45 @@ NUMBER_GUARD_TOLERANCE = 0.5
 # ------------------------------------------------------------------
 #
 # The frozen Chunk 6 worked example seeds exactly one competency's
-# entry, under the label "Exception Handling" -- a name that does not
-# appear verbatim in config.COMPETENCY_CATALOG. The two real catalog
-# competencies semantically closest to "exception handling" are "Known
-# Issue Handling" and "Risk Judgement" (both CC-pillar, both critical);
-# the frozen actions are seeded onto both as the best-available
-# reconciliation, and a generic fallback covers every other competency.
-# **Flagged for review**: confirm against the frozen doc whether
-# "Exception Handling" maps to one specific catalog competency, or
-# whether the catalog itself needs a renamed/added entry.
+# entry, under the label "Exception Handling" -- originally a name that
+# did not appear verbatim in config.COMPETENCY_CATALOG, so the frozen
+# actions were seeded onto the two old-catalog competencies semantically
+# closest to it ("Known Issue Handling" and "Risk Judgement", both
+# CC-pillar, both critical), with a generic fallback for every other
+# competency.
+#
+# [PROPOSAL ruling, OIF Chunk 3 reconciliation]: the new 12-competency
+# catalog (config.py) now has a real "exception_handling" key (renamed
+# from the old "System Operation"), which is unrelated to this table's
+# historical workaround -- the two rows below keep tracking their own
+# renamed competencies ("problem_solving" <- "Known Issue Handling",
+# "decision_making" <- "Risk Judgement") rather than being merged into
+# the new "exception_handling" key, since that key now means something
+# else in the reconciled catalog. The prior "flagged for review" note is
+# resolved: no further action needed here.
 
 REMEDIATION_TABLE: dict[str, list[str]] = {
-    "Known Issue Handling": [
+    "problem_solving": [
         "Additional exception management KT",
         "Recovery scenario reassessment",
     ],
-    "Risk Judgement": [
+    "decision_making": [
         "Additional exception management KT",
         "Recovery scenario reassessment",
     ],
-    "Process Execution": [
+    "process_execution": [
         "Additional process walkthrough KT session",
         "Process execution scenario reassessment",
     ],
-    "System Operation": [
+    "exception_handling": [
         "Hands-on system operation refresher",
         "System operation scenario reassessment",
     ],
-    "Business Rule Compliance": [
+    "compliance_control_awareness": [
         "Business rule/policy review session",
         "Compliance scenario reassessment",
     ],
-    "Escalation Judgement": [
+    "escalation_awareness": [
         "Escalation path and contact review",
         "Escalation scenario reassessment",
     ],
