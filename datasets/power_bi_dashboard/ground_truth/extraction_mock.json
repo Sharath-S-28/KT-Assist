@@ -1,0 +1,36 @@
+{
+  "objects": [
+    {
+      "id": "p1",
+      "object_type": "Process",
+      "name": "Month-End Close",
+      "description": "Closes the books monthly using the standard month-end close procedure.",
+      "criticality": "Important",
+      "confidence": 0.9
+    },
+    {
+      "id": "t1",
+      "object_type": "Task",
+      "name": "Sub-Ledger Reconciliation",
+      "description": "Reconcile sub-ledgers and post adjusting journal entries before close.",
+      "criticality": "Important",
+      "confidence": 0.9
+    },
+    {
+      "id": "b1",
+      "object_type": "Business Rule",
+      "name": "GL Balance Rule",
+      "description": "",
+      "criticality": "Important",
+      "confidence": 0.9
+    },
+    {
+      "id": "r1",
+      "object_type": "Risk",
+      "name": "Late Close Risk",
+      "description": "",
+      "criticality": "Important",
+      "confidence": 0.9
+    }
+  ]
+}

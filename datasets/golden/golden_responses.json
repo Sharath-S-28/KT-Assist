@@ -1,0 +1,82 @@
+{
+  "note": "Phase 13 D8 -- KASE/threshold/certification regression evidence keys. Every number below was MEASURED by services.datasets.dataset_validator.DatasetValidator.validate_golden_scores against the real services.kase_scoring + services.threshold_model + services.kase pipeline (see tests/datasets/test_golden_responses.py), never hand-asserted. See validate_golden_scores's own docstring for the [PROPOSAL ruling] on why these use a synthetic one-scenario-per-competency construction (test_session28_kase_integration.py's proven technique) rather than routing through a real dataset package's KRA-generated scenarios: the Power BI Dashboard profile only ever yields 3 coarse scenarios spanning 6 of the 9 catalog competencies, which makes anything but a clean Ready/Not-Ready sweep structurally unreachable.",
+  "role_tier": "Primary",
+  "ois_tolerance": 1.5,
+  "responses": [
+    {
+      "name": "ready_all_demonstrated",
+      "description": "Every one of the 9 config.COMPETENCY_CATALOG competencies Demonstrated -- the clean-sweep case, mirrors test_session28_kase_integration.py's SET_B.",
+      "competency_response_strategy": {
+        "Process Execution": "Demonstrated",
+        "Task Sequencing": "Demonstrated",
+        "System Operation": "Demonstrated",
+        "Dependency Awareness": "Demonstrated",
+        "Business Rule Compliance": "Demonstrated",
+        "Risk Judgement": "Demonstrated",
+        "Control Application": "Demonstrated",
+        "Escalation Judgement": "Demonstrated",
+        "Known Issue Handling": "Demonstrated"
+      },
+      "expected_ois_score": 100.0,
+      "expected_decision": "Ready",
+      "expected_certification_level": "Gold",
+      "expected_critical_gate_passed": true,
+      "expected_competency_scores": {
+        "Process Execution": 100.0, "Task Sequencing": 100.0, "System Operation": 100.0,
+        "Dependency Awareness": 100.0, "Business Rule Compliance": 100.0, "Risk Judgement": 100.0,
+        "Control Application": 100.0, "Escalation Judgement": 100.0, "Known Issue Handling": 100.0
+      },
+      "expected_pillar_scores": {"OE": 100.0, "SA": 100.0, "GC": 100.0, "CC": 100.0}
+    },
+    {
+      "name": "not_ready_critical_gate_failure",
+      "description": "System Operation and Risk Judgement (both critical) score Partial/Missing -- OIS itself sits in the boundary zone (74.17, within 3 points below the 75 threshold) but the Critical Competency Gate forces Not Ready regardless, proving gates outrank raw score. Mirrors test_session28_kase_integration.py's SET_A.",
+      "competency_response_strategy": {
+        "Process Execution": "Demonstrated",
+        "Task Sequencing": "Demonstrated",
+        "System Operation": "Partial",
+        "Dependency Awareness": "Partial",
+        "Business Rule Compliance": "Demonstrated",
+        "Risk Judgement": "Missing",
+        "Control Application": "Demonstrated",
+        "Escalation Judgement": "Demonstrated",
+        "Known Issue Handling": "Demonstrated"
+      },
+      "expected_ois_score": 74.1667,
+      "expected_decision": "Not Ready",
+      "expected_certification_level": null,
+      "expected_critical_gate_passed": false,
+      "expected_competency_scores": {
+        "Process Execution": 100.0, "Task Sequencing": 100.0, "System Operation": 50.0,
+        "Dependency Awareness": 50.0, "Business Rule Compliance": 100.0, "Risk Judgement": 0.0,
+        "Control Application": 100.0, "Escalation Judgement": 100.0, "Known Issue Handling": 100.0
+      },
+      "expected_pillar_scores": {"OE": 83.33, "SA": 75.0, "GC": 100.0, "CC": 50.0}
+    },
+    {
+      "name": "conditionally_ready_boundary_zone",
+      "description": "All 6 critical competencies score 100 (gate passes), but two non-critical competencies (Task Sequencing, Dependency Awareness) are Missing and one (Control Application) is Partial, dragging OIS to 74.58 -- inside [threshold-3, threshold) = [72, 75) -- which resolves to Conditionally Ready with no certification (74.58 is below the Bronze floor of 75).",
+      "competency_response_strategy": {
+        "Process Execution": "Demonstrated",
+        "Task Sequencing": "Missing",
+        "System Operation": "Demonstrated",
+        "Dependency Awareness": "Missing",
+        "Business Rule Compliance": "Demonstrated",
+        "Risk Judgement": "Demonstrated",
+        "Control Application": "Partial",
+        "Escalation Judgement": "Demonstrated",
+        "Known Issue Handling": "Demonstrated"
+      },
+      "expected_ois_score": 74.5833,
+      "expected_decision": "Conditionally Ready",
+      "expected_certification_level": null,
+      "expected_critical_gate_passed": true,
+      "expected_competency_scores": {
+        "Process Execution": 100.0, "Task Sequencing": 0.0, "System Operation": 100.0,
+        "Dependency Awareness": 0.0, "Business Rule Compliance": 100.0, "Risk Judgement": 100.0,
+        "Control Application": 50.0, "Escalation Judgement": 100.0, "Known Issue Handling": 100.0
+      },
+      "expected_pillar_scores": {"OE": 66.67, "SA": 50.0, "GC": 75.0, "CC": 100.0}
+    }
+  ]
+}
