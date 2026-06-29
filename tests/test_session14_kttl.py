@@ -75,16 +75,33 @@ def test_pure_operations_graph_matches_operations_without_blending():
 # ---------------------------------------------------------------------------
 
 def test_hybrid_graph_blends_python_application_and_operations():
-    # Process/Task shared; System+Dependency are Python App-only,
-    # Escalation+Known Issue are Operations-only -- an even mix of both.
-    payload = _payload(["Process", "Task", "System", "Dependency", "Escalation", "Known Issue"])
+    # [PROPOSAL ruling, KTTL Chunk 2 reconciliation]: under the new
+    # profiles, Operations has no required type that isn't also required
+    # by Dashboard or Python Application (Process/Task/Dependency/Control
+    # are required by all three; Escalation is shared with Dashboard;
+    # Risk is shared with Python Application) -- so there's no longer a
+    # payload that is an "even mix" of Python-App-only and
+    # Operations-only required types. Instead this payload leans on
+    # Business Rule (Python Application's one true exclusive required
+    # type) plus Risk/Control (shared by Python Application and
+    # Operations but not enough of Dashboard's required set to let
+    # Dashboard catch up) to land Python Application and Operations as
+    # the top two scores within BLEND_SCORE_GAP of each other, with
+    # Dashboard clearly behind.
+    payload = _payload(["Process", "Task", "Dependency", "Risk", "Control", "Business Rule"])
     match = detect_package_template(payload)
 
     assert match.is_blended
     assert set(match.blended_from) == {"Python Application", "Operations"}
     assert "Blended" in match.package_type
-    # Merged required profile should equal exactly what's present.
-    assert set(match.required_types) == {"Process", "Task", "System", "Dependency", "Escalation", "Known Issue"}
+    # Merged required profile is the union of both source templates' own
+    # required sets (not merely what's present in this graph -- a
+    # blended template still expects System/Escalation even though this
+    # particular graph hasn't captured them yet).
+    expected_required = set(config.KNOWLEDGE_TYPE_TEMPLATES["Python Application"]["required"]) | set(
+        config.KNOWLEDGE_TYPE_TEMPLATES["Operations"]["required"]
+    )
+    assert set(match.required_types) == expected_required
     # No type may appear in both required and optional after merging.
     assert set(match.required_types).isdisjoint(set(match.optional_types))
 

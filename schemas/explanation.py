@@ -23,7 +23,7 @@ don't match Sessions 1-28's actual conventions):
     ReceiverReadiness.final_decision: "Ready" / "Conditionally Ready" /
     "Not Ready" -- not the spec's lowercase snake_case Literal.
   - `competency_id` / `pillar_id` reuse the real catalog keys directly
-    (CompetencyResult.competency_name e.g. "Risk Judgement",
+    (CompetencyResult.competency_name e.g. "decision_making",
     PillarResult.pillar_code e.g. "OE") rather than inventing a separate
     snake_case id space the rest of the codebase doesn't have.
   - Gate thresholds/observed values are left on whatever scale the
@@ -60,7 +60,7 @@ class EvidenceFact(BaseModel):
 
 
 class CompetencyFact(BaseModel):
-    competency_id: str  # competency_name, e.g. "Risk Judgement" (config.COMPETENCY_CATALOG key)
+    competency_id: str  # competency_name, e.g. "decision_making" (config.COMPETENCY_CATALOG key)
     name: str
     score: float  # 0-100, as stored by CompetencyResult.score
     weight: float  # this competency's equal share of its pillar's scored members (1/N)

@@ -1,27 +1,29 @@
 {
   "note": "Measured by services.datasets.dataset_validator.DatasetValidator.validate_coverage_curve against the real Coverage Engine (services/coverage_engine.py) via an in-memory test DB -- see tests/datasets/test_dataset_ground_truth.py::test_power_bi_dashboard_coverage_curve_within_tolerance, which asserts these values stay within the tolerance declared in intentional_gaps.json / gap_answers.json. These are facts the engine produced, not predictions.",
-  "denominator_points": 13,
-  "denominator_note": "Dashboard profile (config.KNOWLEDGE_TYPE_TEMPLATES['Dashboard']): 4 required types (Process, Task, System, Business Rule) @ Critical weight 3 + 1 optional type (Risk) @ Supporting weight 1 = 4*3 + 1*1 = 13.",
-  "initial_coverage": 0.6153846153846154,
-  "initial_points": 8.0,
-  "initial_target": 0.63,
-  "initial_tolerance": 0.02,
+  "denominator_points": 19,
+  "denominator_note": "[PROPOSAL ruling, KTTL Chunk 2 reconciliation] Dashboard profile (config.KNOWLEDGE_TYPE_TEMPLATES['Dashboard']): 6 required types (Process, Task, System, Dependency, Control, Escalation) at Critical weight 3 + 1 optional type (Known Issue) at Supporting weight 1 = 6*3 + 1*1 = 19. Supersedes the prior 13-point profile (Process/Task/System/Business Rule required + Risk optional), which is stale -- Business Rule and Risk are no longer in the Dashboard profile.",
+  "initial_coverage": 0.7105263157894737,
+  "initial_points": 13.5,
+  "initial_target": 0.7105263157894737,
+  "initial_tolerance": 0.01,
   "initial_within_tolerance": true,
-  "step_coverages": [0.8461538461538461, 0.8846153846153846],
+  "step_coverages": [0.7894736842105263, 0.868421052631579],
   "step_notes": [
-    "Step 1 (create System 'SAP FI'): Missing -> Complete, +3 weighted points (8 -> 11 of 13) = 0.8461538461538461.",
-    "Step 2 (update Risk 'Late Close Risk' description): Partial -> Complete, +0.5 weighted points (11 -> 11.5 of 13, since Partial already counted half its weight) = 0.8846153846153846."
+    "Step 1 (update System 'Power BI Dataset' description): Partial -> Complete, +1.5 weighted points (13.5 -> 15 of 19) = 0.7894736842105263.",
+    "Step 2 (update Control 'Refresh Validation Control' description): Partial -> Complete, +1.5 weighted points (15 -> 16.5 of 19) = 0.868421052631579."
   ],
-  "final_coverage": 0.8846153846153846,
-  "final_points": 11.5,
-  "final_target": 0.89,
-  "final_tolerance": 0.02,
+  "final_coverage": 0.868421052631579,
+  "final_points": 16.5,
+  "final_target": 0.868421052631579,
+  "final_tolerance": 0.01,
   "final_within_tolerance": true,
   "final_type_status": {
     "Process": "Complete",
     "Task": "Complete",
     "System": "Complete",
-    "Business Rule": "Partial",
-    "Risk": "Complete"
+    "Dependency": "Complete",
+    "Control": "Complete",
+    "Escalation": "Partial",
+    "Known Issue": "Missing"
   }
 }

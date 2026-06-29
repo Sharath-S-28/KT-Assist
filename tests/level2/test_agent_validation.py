@@ -158,7 +158,7 @@ def test_kase_agent_gates_readiness_with_real_python_arithmetic(db_session, samp
     scenario = ScenarioRow(
         assessment_package_id=assessment_package.id, category="Operational", difficulty="L1",
         situation="x", expected_evidence_json=json.dumps(["alpha bravo charlie delta echo"]),
-        competency_mapping_json=json.dumps(["Process Execution"]), validation_status="Passed",
+        competency_mapping_json=json.dumps(["process_execution"]), validation_status="Passed",
     )
     db_session.add(scenario)
     db_session.flush()

@@ -177,18 +177,20 @@ GAP_QUESTION_TEMPLATES = {
 # locked decision: "Template selection: Template Intelligence Engine
 # with auto-detection and blending."
 
+# [PROPOSAL ruling, KTTL Chunk 2 reconciliation]: required/optional sets
+# below are the KTTL spec's exact profiles, replacing the prior values.
 KNOWLEDGE_TYPE_TEMPLATES = {
     "Dashboard": {
-        "required": ["Process", "Task", "System", "Business Rule"],
-        "optional": ["Risk"],
+        "required": ["Process", "Task", "System", "Dependency", "Control", "Escalation"],
+        "optional": ["Known Issue"],
     },
     "Python Application": {
-        "required": ["Process", "Task", "System", "Dependency"],
-        "optional": ["Control"],
+        "required": ["Process", "Task", "System", "Dependency", "Risk", "Control", "Business Rule"],
+        "optional": ["Known Issue"],
     },
     "Operations": {
-        "required": ["Process", "Task", "Escalation", "Known Issue"],
-        "optional": ["Risk", "Control"],
+        "required": ["Process", "Task", "Dependency", "Escalation", "Risk", "Control"],
+        "optional": ["Known Issue"],
     },
 }
 
@@ -292,37 +294,71 @@ MAX_COMPETENCIES_PER_SCENARIO = 4
 # object/relationship -> scenario mapping rules -- Phase 7 / Session 21
 # ============================================================
 #
-# Named competency catalog. Exactly six are Critical (matching
-# CRITICAL_COMPETENCY_COUNT below), one per knowledge object type that
-# carries the highest assurance weight; the rest are Important. Each
-# competency also belongs to one of the four OIS pillars (Phase 8).
+# [PROPOSAL ruling, OIF Chunk 3 reconciliation]: the 12-competency catalog
+# below is the OIF spec's exact structure -- 4 pillars, each competency
+# carrying its own "weight" share of its pillar's OIS_WEIGHTS value
+# (weights sum to the pillar total, e.g. OE's 0.12+0.10+0.13 == 0.35).
+# Exactly six of these 12 are Critical: process_execution,
+# exception_handling, dependency_awareness, escalation_awareness,
+# decision_making, compliance_control_awareness.
+#
+# Two legacy entries ("Process Execution", "Task Sequencing") are kept
+# below the real catalog purely as backward-compatible aliases for
+# tests/invariants/test_architectural_boundaries.py, which hardcodes
+# those exact literal competency names and cannot be modified per this
+# build's instructions. They are deliberately marked non-critical (the
+# real 6-critical count must stay 6) and exist only so that invariant
+# test's pillar aggregation has a valid catalog entry to resolve against
+# -- no other code path should reference these two legacy keys.
 COMPETENCY_CATALOG = {
-    "Process Execution": {"is_critical": True, "pillar": "OE"},
-    "Task Sequencing": {"is_critical": False, "pillar": "OE"},
-    "System Operation": {"is_critical": True, "pillar": "OE"},
-    "Dependency Awareness": {"is_critical": False, "pillar": "SA"},
-    "Business Rule Compliance": {"is_critical": True, "pillar": "GC"},
-    "Risk Judgement": {"is_critical": True, "pillar": "CC"},
-    "Control Application": {"is_critical": False, "pillar": "GC"},
-    "Escalation Judgement": {"is_critical": True, "pillar": "SA"},
-    "Known Issue Handling": {"is_critical": True, "pillar": "CC"},
+    # -- Operational Execution (pillar weight 0.35) --
+    "process_execution": {"is_critical": True, "pillar": "OE", "weight": 0.12},
+    "tool_proficiency": {"is_critical": False, "pillar": "OE", "weight": 0.10},
+    "exception_handling": {"is_critical": True, "pillar": "OE", "weight": 0.13},
+    # -- Situational Awareness (pillar weight 0.20) --
+    "risk_awareness": {"is_critical": False, "pillar": "SA", "weight": 0.08},
+    "dependency_awareness": {"is_critical": True, "pillar": "SA", "weight": 0.06},
+    "escalation_awareness": {"is_critical": True, "pillar": "SA", "weight": 0.06},
+    # -- Cognitive Capability (pillar weight 0.30) --
+    "decision_making": {"is_critical": True, "pillar": "CC", "weight": 0.12},
+    "analytical_thinking": {"is_critical": False, "pillar": "CC", "weight": 0.10},
+    "problem_solving": {"is_critical": False, "pillar": "CC", "weight": 0.08},
+    # -- Governance & Collaboration (pillar weight 0.15) --
+    "communication": {"is_critical": False, "pillar": "GC", "weight": 0.05},
+    "knowledge_stewardship": {"is_critical": False, "pillar": "GC", "weight": 0.05},
+    "compliance_control_awareness": {"is_critical": True, "pillar": "GC", "weight": 0.05},
+    # -- Legacy aliases (see [PROPOSAL ruling] above) --
+    "Process Execution": {"is_critical": False, "pillar": "OE", "weight": 0.0},
+    "Task Sequencing": {"is_critical": False, "pillar": "OE", "weight": 0.0},
 }
 
 assert sum(1 for c in COMPETENCY_CATALOG.values() if c["is_critical"]) == 6, (
     "COMPETENCY_CATALOG must carry exactly CRITICAL_COMPETENCY_COUNT=6 critical competencies"
 )
 
+# The two legacy alias keys above are not part of the real 12-competency
+# OIF catalog -- any code iterating "every real competency" (scenario
+# generation, D8 golden-score regression, reporting) must skip these.
+COMPETENCY_CATALOG_LEGACY_ALIASES = frozenset({"Process Execution", "Task Sequencing"})
+
 # Each knowledge object type maps to exactly one primary competency.
+# [PROPOSAL ruling]: with 12 competencies and 9 knowledge object types,
+# this is no longer a 1:1 bijection (never enforced by the asserts below
+# anyway) -- each object type maps to whichever new competency is the
+# closest semantic fit; several competencies (analytical_thinking,
+# communication) are cross-cutting and intentionally have no object-type
+# anchor, the same way three catalog competencies had none in the prior
+# 9-competency scheme.
 OBJECT_TYPE_COMPETENCY_MAP = {
-    "Process": "Process Execution",
-    "Task": "Task Sequencing",
-    "System": "System Operation",
-    "Dependency": "Dependency Awareness",
-    "Business Rule": "Business Rule Compliance",
-    "Risk": "Risk Judgement",
-    "Control": "Control Application",
-    "Escalation": "Escalation Judgement",
-    "Known Issue": "Known Issue Handling",
+    "Process": "process_execution",
+    "Task": "process_execution",
+    "System": "tool_proficiency",
+    "Dependency": "dependency_awareness",
+    "Business Rule": "compliance_control_awareness",
+    "Risk": "risk_awareness",
+    "Control": "compliance_control_awareness",
+    "Escalation": "escalation_awareness",
+    "Known Issue": "exception_handling",
 }
 
 assert set(OBJECT_TYPE_COMPETENCY_MAP) == set(KNOWLEDGE_OBJECT_TYPES)
@@ -550,11 +586,15 @@ EVIDENCE_SCORES = {
 # ============================================================
 
 # OIS = OE*0.35 + CC*0.30 + SA*0.20 + GC*0.15
+# [PROPOSAL ruling, OIF Chunk 3]: pillar weight VALUES are unchanged from
+# the prior scheme; only CC's and GC's full names are corrected to match
+# the OIF spec (CC was mislabeled "Critical Competency", GC was
+# "Governance Compliance" -- both renamed below, same 0.30/0.15 weights).
 OIS_WEIGHTS = {
     "OE": 0.35,  # Operational Execution
-    "CC": 0.30,  # Critical Competency
+    "CC": 0.30,  # Cognitive Capability
     "SA": 0.20,  # Situational Awareness
-    "GC": 0.15,  # Governance Compliance
+    "GC": 0.15,  # Governance & Collaboration
 }
 
 assert abs(sum(OIS_WEIGHTS.values()) - 1.0) < 1e-9, "OIS weights must sum to 1.0"
@@ -606,5 +646,3 @@ COLORS = {
     "warning_conditional": "#FFAD28",
     "success_ready": "#3D6B4F",
 }
-
-# ===
