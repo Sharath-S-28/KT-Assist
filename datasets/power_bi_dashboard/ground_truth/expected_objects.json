@@ -1,0 +1,24 @@
+{
+  "package_type": "Dashboard",
+  "initial": {
+    "package_type": "Dashboard",
+    "types": [
+      {"object_type": "Process", "status": "Complete"},
+      {"object_type": "Task", "status": "Complete"},
+      {"object_type": "System", "status": "Missing"},
+      {"object_type": "Business Rule", "status": "Partial"},
+      {"object_type": "Risk", "status": "Partial"}
+    ]
+  },
+  "final": {
+    "package_type": "Dashboard",
+    "types": [
+      {"object_type": "Process", "status": "Complete"},
+      {"object_type": "Task", "status": "Complete"},
+      {"object_type": "System", "status": "Complete"},
+      {"object_type": "Business Rule", "status": "Partial"},
+      {"object_type": "Risk", "status": "Complete"}
+    ]
+  },
+  "note": "package_type/required/optional are derived from the real config.KNOWLEDGE_TYPE_TEMPLATES['Dashboard'] profile (Process, Task, System, Business Rule required; Risk optional) -- not the Phase 13 spec's illustrative Dashboard profile text. Business Rule is intentionally left Partial in the final state (no gap-answer script closes it) so the dataset's final coverage lands below 100%, matching the spec's ~89% target rather than a full close."
+}

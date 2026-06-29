@@ -1,0 +1,12 @@
+{
+  "omitted_types": ["System"],
+  "partial_types": ["Business Rule", "Risk"],
+  "rationale": {
+    "System": "The source document explicitly defers describing 'which system of record drives the GL close' -- KAI has nothing to extract, so this required type is genuinely Missing, not merely unextracted.",
+    "Business Rule": "The GL Balance Rule is named but its owner sign-off / balancing checklist is explicitly deferred in the source text, producing an object with an empty description (Partial).",
+    "Risk": "The Late Close risk is named but its mitigation/owner is explicitly deferred in the source text, producing an object with an empty description (Partial)."
+  },
+  "expected_initial_coverage_target": 0.63,
+  "coverage_tolerance": 0.02,
+  "note": "Target is the Phase 13 spec's illustrative ~63%; the real engine's discrete Complete/Partial/Missing x weight arithmetic against the real Dashboard profile (4 required @ Critical=3 + 1 optional @ Supporting=1, total=13 points) cannot land on every percentage exactly. DatasetValidator measures the real value; see ground_truth/coverage_curve.json for the actual measured numbers this dataset converged on."
+}

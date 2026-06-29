@@ -16,10 +16,16 @@ drives DemoRunner.run_full_demo using the same worked example
 (Process/Task/Business-Rule/Risk/System, two gap closures,
 8.5/13 -> 11.5/13 -> 13/13) already hand-verified by
 tests/level3/test_full_workflow.py and reused by
-tests/demo/test_demo_runner.py -- a runbook should walk a known-good,
+tests/test_demo_runner.py -- a runbook should walk a known-good,
 already-trusted path, not a freshly invented one. It always runs in
 DEV_MODE (no live API spend) regardless of config.DEV_MODE, since a
 runbook is meant to be safely re-run on demand.
+
+Each `demo` run creates a brand-new program (DEMO_PROGRAM_NAME below)
+rather than reusing the last one, so repeated runs accumulate rows. Run
+`python scripts/reset_demo.py` to delete every program this command has
+ever created (see that script's docstring for why it can't just rely on
+ORM cascade delete) -- see docs/DEMO_RUNBOOK.md for the full runbook.
 """
 
 import argparse
@@ -29,6 +35,11 @@ from utils.logging_config import configure_logging
 
 configure_logging()
 logger = logging.getLogger("kt_assist.cli")
+
+# Shared with scripts/reset_demo.py: the exact name cmd_demo gives the
+# dedicated program it creates on every `python cli.py demo` run, so the
+# cleanup script can find (and only find) programs the runbook created.
+DEMO_PROGRAM_NAME = "Demo — CLI Runbook Walkthrough"
 
 
 def cmd_init() -> None:
@@ -75,13 +86,13 @@ def cmd_demo() -> None:
     accurate, but the wrong experience for a runbook whose job is to
     show the actual happy path end to end (the already-proven 'blocked'
     case is covered separately by
-    tests/demo/test_demo_runner.py::test_demo_runner_records_a_blocked_step_without_crashing_when_a_real_gate_fails).
+    tests/test_demo_runner.py::test_demo_runner_records_a_blocked_step_without_crashing_when_a_real_gate_fails).
     So this creates its own single-package program every run, isolating
     the walkthrough from any other packages that may exist."""
     from database import init_db, session_scope
     from models import KnowledgePackage, KTProgram, Participant
     from services.claude_client import ClaudeClient
-    from services.orchestration.demo_runner import DemoRunner
+    from services.demo.demo_runner import DemoRunner
     from services.response_interpretation import InterpretationResult, InterpretedObjectChange
 
     init_db()
@@ -133,7 +144,7 @@ def cmd_demo() -> None:
 
     with session_scope() as db:
         program = KTProgram(
-            name="Demo — CLI Runbook Walkthrough",
+            name=DEMO_PROGRAM_NAME,
             description="Dedicated single-package program for the Session 36 demo runbook.",
             lifecycle_state="Draft",
             completion_status="Not Started",
@@ -171,6 +182,17 @@ def cmd_demo() -> None:
         )
 
         print(log.render())
+        # NOTE: all_ok is commonly False even on a fully successful run --
+        # two [BLOCKED] lines are real, expected, and harmless: (1) the
+        # Gap Resolution entry guard reads the latest *persisted*
+        # CoverageResult, which doesn't exist yet the first time coverage
+        # is computed in-memory, so it reports "no package fails the gate"
+        # even though the in-memory score is below threshold; (2) re-
+        # entering "Knowledge Validation" from "Knowledge Validation" after
+        # gap closure is a same-state no-op edge, which the lifecycle map
+        # correctly treats as illegal rather than a real transition. Both
+        # are caught by _transition and narrated as [BLOCKED], never raised
+        # -- the walkthrough still reaches Completed, as shown above.
         logger.info("Demo run complete: %d step(s) narrated, all_ok=%s", len(log.steps), log.all_ok)
 
 

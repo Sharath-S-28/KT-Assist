@@ -1,0 +1,29 @@
+MONTH-END CLOSE STANDARD OPERATING PROCEDURE
+Power BI Reporting Transition — Finance Operations
+
+PROCESS OVERVIEW
+This procedure closes the general ledger each month and refreshes the
+downstream Power BI reporting dataset used by Finance leadership. The
+process owner is the GL Accounting Lead; the process runs on the second
+business day after period close.
+
+TASK: SUB-LEDGER RECONCILIATION
+Before the books are closed, all sub-ledgers (AP, AR, Fixed Assets) must
+be reconciled against the general ledger and any adjusting journal
+entries posted. This task is performed daily during the close window,
+not just once at period end.
+
+BUSINESS RULE: GL BALANCE RULE
+The general ledger must balance to zero before the close is considered
+final. (Owner sign-off and the specific balancing checklist are
+maintained outside this document and have not yet been captured here.)
+
+KNOWN RISK: LATE CLOSE
+A late close delays the Power BI dataset refresh and the downstream
+leadership dashboards. (The specific mitigation steps and risk owner
+have not yet been captured here.)
+
+NOTE: this document intentionally does not yet describe which system
+of record drives the GL close, or how the dataset refresh is
+technically triggered — that information is captured separately as
+part of the knowledge transfer gap-resolution process.

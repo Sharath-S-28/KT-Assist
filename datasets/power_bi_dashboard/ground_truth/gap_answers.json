@@ -1,0 +1,23 @@
+{
+  "steps": [
+    {
+      "object_type": "System",
+      "action": "create",
+      "name": "SAP FI",
+      "description": "SAP FI is the system of record that drives the GL close and feeds the Power BI dataset refresh.",
+      "target_object_id": null
+    },
+    {
+      "object_type": "Risk",
+      "action": "update",
+      "name": "Late Close Risk",
+      "description": "Mitigated by escalating to the GL Accounting Lead within 4 hours of a missed close checkpoint; risk owner is Finance Operations.",
+      "target_object_id": "r1"
+    }
+  ],
+  "intentionally_unresolved": ["Business Rule"],
+  "rationale": "Business Rule (GL Balance Rule) deliberately has no gap-answer step: per Phase 13's own [PROPOSAL ruling], the dataset's final coverage must land below 100% to match the spec's ~89% target, and leaving one Partial type unresolved is a more realistic worked example than a contrived full close.",
+  "expected_final_coverage_target": 0.89,
+  "coverage_tolerance": 0.02,
+  "note": "DatasetValidator applies these two steps via services.graph_update.close_gap against a real running KVA, and records the measured coverage after each step in ground_truth/coverage_curve.json -- the target above is illustrative only."
+}
