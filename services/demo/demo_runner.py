@@ -284,7 +284,10 @@ class DemoRunner:
             f"OIS={rollup.scoring_result.ois_score:.1f}; decision={rollup.threshold_resolution.decision!r}.",
         )
 
-        if rollup.threshold_resolution.decision == "Ready":
+        if rollup.threshold_resolution.decision in {"Ready", "Conditionally Ready"}:
+            # Both "Ready" and "Conditionally Ready" pass the Operational
+            # Readiness Gate (neither is "Not Ready") -- the workflow engine's
+            # _readiness_gate guard only blocks on "Not Ready" or failed sub-gates.
             self._transition(log, program_id, "Ready", "Operational Readiness Gate passed.")
             self._transition(log, program_id, "Completed", "Program complete.")
         else:
