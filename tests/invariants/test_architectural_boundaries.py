@@ -202,7 +202,10 @@ def test_readiness_flow_persists_in_appendix_d_order(db_session, sample_program)
     db_session.flush()
 
     pairs = []
-    for competency_name in ["Process Execution", "Task Sequencing"]:
+    for competency_name in ["process_execution", "exception_handling"]:
+        # Use canonical snake_case names from COMPETENCY_CATALOG (not legacy
+        # aliases like "Process Execution" / "Task Sequencing" which have
+        # weight=0.0 and are skipped by weighted intra-pillar scoring).
         scenario = ScenarioRow(
             assessment_package_id=assessment_package.id,
             category="Operational",
