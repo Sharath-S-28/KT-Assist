@@ -25,12 +25,25 @@
       "expected_certification_level": "Gold",
       "expected_critical_gate_passed": true,
       "expected_competency_scores": {
-        "process_execution": 100.0, "tool_proficiency": 100.0, "exception_handling": 100.0,
-        "risk_awareness": 100.0, "dependency_awareness": 100.0, "escalation_awareness": 100.0,
-        "decision_making": 100.0, "analytical_thinking": 100.0, "problem_solving": 100.0,
-        "communication": 100.0, "knowledge_stewardship": 100.0, "compliance_control_awareness": 100.0
+        "process_execution": 100.0,
+        "tool_proficiency": 100.0,
+        "exception_handling": 100.0,
+        "risk_awareness": 100.0,
+        "dependency_awareness": 100.0,
+        "escalation_awareness": 100.0,
+        "decision_making": 100.0,
+        "analytical_thinking": 100.0,
+        "problem_solving": 100.0,
+        "communication": 100.0,
+        "knowledge_stewardship": 100.0,
+        "compliance_control_awareness": 100.0
       },
-      "expected_pillar_scores": {"OE": 100.0, "SA": 100.0, "GC": 100.0, "CC": 100.0}
+      "expected_pillar_scores": {
+        "OE": 100.0,
+        "SA": 100.0,
+        "CC": 100.0,
+        "GC": 100.0
+      }
     },
     {
       "name": "not_ready_critical_gate_failure",
@@ -49,17 +62,30 @@
         "knowledge_stewardship": "Demonstrated",
         "compliance_control_awareness": "Demonstrated"
       },
-      "expected_ois_score": 80.8333,
+      "expected_ois_score": 77.5,
       "expected_decision": "Not Ready",
       "expected_certification_level": null,
       "expected_critical_gate_passed": false,
       "expected_competency_scores": {
-        "process_execution": 100.0, "tool_proficiency": 100.0, "exception_handling": 50.0,
-        "risk_awareness": 50.0, "dependency_awareness": 100.0, "escalation_awareness": 100.0,
-        "decision_making": 0.0, "analytical_thinking": 100.0, "problem_solving": 100.0,
-        "communication": 100.0, "knowledge_stewardship": 100.0, "compliance_control_awareness": 100.0
+        "process_execution": 100.0,
+        "tool_proficiency": 100.0,
+        "exception_handling": 50.0,
+        "risk_awareness": 50.0,
+        "dependency_awareness": 100.0,
+        "escalation_awareness": 100.0,
+        "decision_making": 0.0,
+        "analytical_thinking": 100.0,
+        "problem_solving": 100.0,
+        "communication": 100.0,
+        "knowledge_stewardship": 100.0,
+        "compliance_control_awareness": 100.0
       },
-      "expected_pillar_scores": {"OE": 83.33, "SA": 83.33, "GC": 100.0, "CC": 66.67}
+      "expected_pillar_scores": {
+        "OE": 81.4286,
+        "SA": 80.0,
+        "CC": 60.0,
+        "GC": 100.0
+      }
     },
     {
       "name": "conditionally_ready_boundary_zone",
@@ -78,17 +104,30 @@
         "knowledge_stewardship": "Missing",
         "compliance_control_awareness": "Demonstrated"
       },
-      "expected_ois_score": 74.1667,
+      "expected_ois_score": 74.5,
       "expected_decision": "Conditionally Ready",
       "expected_certification_level": null,
       "expected_critical_gate_passed": true,
       "expected_competency_scores": {
-        "process_execution": 100.0, "tool_proficiency": 0.0, "exception_handling": 100.0,
-        "risk_awareness": 0.0, "dependency_awareness": 100.0, "escalation_awareness": 100.0,
-        "decision_making": 100.0, "analytical_thinking": 100.0, "problem_solving": 100.0,
-        "communication": 50.0, "knowledge_stewardship": 0.0, "compliance_control_awareness": 100.0
+        "process_execution": 100.0,
+        "tool_proficiency": 0.0,
+        "exception_handling": 100.0,
+        "risk_awareness": 0.0,
+        "dependency_awareness": 100.0,
+        "escalation_awareness": 100.0,
+        "decision_making": 100.0,
+        "analytical_thinking": 100.0,
+        "problem_solving": 100.0,
+        "communication": 50.0,
+        "knowledge_stewardship": 0.0,
+        "compliance_control_awareness": 100.0
       },
-      "expected_pillar_scores": {"OE": 66.67, "SA": 66.67, "GC": 50.0, "CC": 100.0}
+      "expected_pillar_scores": {
+        "OE": 71.4286,
+        "SA": 60.0,
+        "CC": 100.0,
+        "GC": 50.0
+      }
     }
   ]
 }

@@ -52,7 +52,8 @@ _RESPONSE_FOR = {
 }
 
 # competency_name -> intended detection status, mirroring the Session 26
-# worked example (OE=83.33, SA=75, GC=100, CC=50, OIS=74.1666...).
+# worked example (OE=81.43, SA=80.0, GC=100, CC=60.0, OIS=77.5)
+# using normalised intra-pillar weighted scoring (Master Spec v2 Appendix A).
 _SET_A = {
     "process_execution": "Demonstrated",      # OE, critical
     "tool_proficiency": "Demonstrated",        # OE
