@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import config
+from services.resilience import safe_claude_call
 
 logger = logging.getLogger("kt_assist.claude_client")
 
@@ -87,12 +88,12 @@ class ClaudeClient:
 
     def _call_live(self, system_prompt: str, user_payload: dict[str, Any], max_tokens: int) -> dict[str, Any]:
         client = self._get_sdk_client()
-        message = client.messages.create(
+        message = safe_claude_call(lambda: client.messages.create(
             model=config.ANTHROPIC_MODEL,
             max_tokens=max_tokens,
             system=system_prompt,
             messages=[{"role": "user", "content": json.dumps(user_payload)}],
-        )
+        ))
         text = "".join(block.text for block in message.content if block.type == "text")
         try:
             return json.loads(text)
@@ -125,7 +126,7 @@ class ClaudeClient:
             return default_question
 
         client = self._get_sdk_client()
-        message = client.messages.create(
+        message = safe_claude_call(lambda: client.messages.create(
             model=config.ANTHROPIC_MODEL,
             max_tokens=200,
             system=(
@@ -139,7 +140,7 @@ class ClaudeClient:
                     {"object_type": object_type, "status": status, "question": default_question}
                 ),
             }],
-        )
+        ))
         text = "".join(block.text for block in message.content if block.type == "text").strip()
         return text or default_question
 
@@ -172,7 +173,7 @@ class ClaudeClient:
             return result.passed, (result.reason or "")
 
         client = self._get_sdk_client()
-        message = client.messages.create(
+        message = safe_claude_call(lambda: client.messages.create(
             model=config.ANTHROPIC_MODEL,
             max_tokens=200,
             system=(
@@ -188,7 +189,7 @@ class ClaudeClient:
                     "type_label": weighted_scenario.scenario.type_label,
                 }),
             }],
-        )
+        ))
         text = "".join(block.text for block in message.content if block.type == "text").strip()
         try:
             parsed = json.loads(text)

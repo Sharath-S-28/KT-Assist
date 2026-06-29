@@ -1,0 +1,32 @@
+{
+  "note": "[PROPOSAL ruling, ground-truth location]: the Phase 13 spec's §8 sketch put this at data/manifest.json; data/ is reserved for gitignored runtime state (see services/datasets/dataset_loader.py's module docstring ruling), so the manifest lives here instead, alongside the datasets/ tree it describes.",
+  "datasets": [
+    {
+      "name": "power_bi_dashboard",
+      "package_type": "Dashboard",
+      "deliverables": ["D1", "D2", "D3"],
+      "ground_truth_files": [
+        "ground_truth/extraction_mock.json",
+        "ground_truth/expected_objects.json",
+        "ground_truth/intentional_gaps.json",
+        "ground_truth/gap_answers.json",
+        "ground_truth/coverage_curve.json"
+      ],
+      "measured_initial_coverage": 0.6153846153846154,
+      "measured_final_coverage": 0.8846153846153846
+    }
+  ],
+  "golden_responses": {
+    "deliverable": "D8",
+    "file": "golden/golden_responses.json",
+    "response_names": [
+      "ready_all_demonstrated",
+      "not_ready_critical_gate_failure",
+      "conditionally_ready_boundary_zone"
+    ]
+  },
+  "out_of_scope_this_build": {
+    "note": "[PROPOSAL ruling, §8 scope]: Dataset 2 (Python Automation, D4-D6) and Dataset 3 (Operations, D7, itself spec-marked optional) are out of scope for this build pass -- D1-D3+D8 satisfy the spec's own stated exit criteria for a first KASE regression dataset, and adding two more full dataset narratives is a separate, additive follow-up rather than a blocker.",
+      "deferred": ["Dataset 2: Python Automation (D4-D6)", "Dataset 3: Operations (D7, optional)"]
+  }
+}
