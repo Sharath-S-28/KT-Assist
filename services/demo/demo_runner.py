@@ -250,15 +250,14 @@ class DemoRunner:
         # guard_validation_to_assessment) reads the latest *persisted*
         # CoverageResult row, not WorkflowRunner's in-memory KVAResult --
         # so the real coverage row must exist before this transition is
-        # attempted.
-        from models.coverage import CoverageResult
-
-        coverage_result = CoverageResult(
-            package_id=package_id, graph_version_id=kai_result.graph_version.id,
-            coverage_score=kva_result.coverage_score, sufficiency_gate_passed=kva_result.is_sufficient,
+        # attempted. Calls the same WorkflowRunner.persist_coverage_result
+        # every real (non-demo) caller now uses too, instead of building
+        # the row inline here -- this used to be the only writer in the
+        # codebase, and it was missing domain_breakdown_json; both gaps
+        # are fixed together by routing through the one shared function.
+        coverage_result = self.runner.persist_coverage_result(
+            package_id, kai_result.graph_version.id, kva_result
         )
-        self.db.add(coverage_result)
-        self.db.flush()
 
         advanced_to_assessment = self._transition(
             log, program_id, "Assessment", "Sufficiency gate evaluation for Assessment entry."
@@ -395,14 +394,14 @@ class DemoRunner:
             # data, so stop narrating rather than fabricate scenes 5-8.
             return scenes
 
-        from models.coverage import CoverageResult
-
-        coverage_result = CoverageResult(
-            package_id=package_id, graph_version_id=kai_result.graph_version.id,
-            coverage_score=kva_result.coverage_score, sufficiency_gate_passed=kva_result.is_sufficient,
+        # Same shared writer as run_full_demo's matching step above --
+        # see WorkflowRunner.persist_coverage_result's docstring for the
+        # full bug-fix rationale (domain_breakdown_json was previously
+        # dropped here, and this was one of only two real writers of
+        # CoverageResult in the whole codebase before this fix).
+        coverage_result = self.runner.persist_coverage_result(
+            package_id, kai_result.graph_version.id, kva_result
         )
-        self.db.add(coverage_result)
-        self.db.flush()
 
         package_dict, package_row = self.runner.generate_assessment(package_id, use_cache=False)
         scenes.append(SceneResult(
