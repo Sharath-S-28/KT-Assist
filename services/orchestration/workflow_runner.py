@@ -61,6 +61,7 @@ codebase rather than re-litigated with the user:]
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -68,6 +69,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 import config
+from models.coverage import CoverageResult
 from services.claude_client import ClaudeClient
 from services.evidence_detection import _significant_words
 from services.explanation_engine import ExplanationEngine, ExplanationResult
@@ -153,6 +155,57 @@ class WorkflowRunner:
     def validate(self, package_id: str, question_mock: Optional[dict] = None) -> KVAResult:
         payload = load_graph_version(self.db, package_id)
         return run_kva(payload, claude_client=self.client, question_mock=question_mock)
+
+    def persist_coverage_result(
+        self, package_id: str, graph_version_id: str, kva_result: KVAResult
+    ) -> CoverageResult:
+        """Persist validate()'s KVAResult as a CoverageResult row.
+
+        [Bug fix, found live-demo-walkthrough]: this row previously had no
+        real (non-demo, non-test) writer anywhere in the codebase --
+        validate() above returns a KVAResult but never saves it, and the
+        one router-layer comment claiming "services/routers/packages.py
+        persists it onto a CoverageResult row yet" (services/coverage_
+        dashboard_service.py's docstring) does not match that file, which
+        is 39 lines of create/list/get package and never touches coverage
+        at all. services.kase.score_and_persist_readiness's own docstring
+        independently assumes this row "already computed and persisted by
+        KVA" -- an assumption nothing upheld outside DemoRunner's two
+        separate inline CoverageResult(...) constructions (themselves
+        missing domain_breakdown_json, the original, narrower bug this
+        was meant to fix). Folding both fixes into one: this is now the
+        single real writer, and DemoRunner's two sites call it instead of
+        duplicating the construction.
+
+        Deliberately a separate method from validate(), not folded into
+        it, for the same reason load_graph_version's return value was
+        kept untouched rather than widened to also carry the graph
+        version row's id (an 8-call-site shared utility, too wide a
+        blast radius for this fix): validate() returns a GraphPayload-
+        derived KVAResult with no DB row reference in it, while the
+        KnowledgeGraphVersion row's id only exists on ingest()'s
+        KAIPipelineResult. Every real caller already holds that id by the
+        time it calls this, exactly like score_and_persist_readiness
+        already requires its own caller to hand in a CoverageResult it
+        does not compute itself -- the same established pattern, applied
+        one stage earlier.
+
+        Pure persistence, zero new computation: every field written here
+        was already computed by run_kva() inside validate(); this method
+        only serializes and saves it, never recomputes or re-derives it
+        (the same restriction coverage_dashboard_service.py's docstring
+        already states for the read side, mirrored here for the write
+        side)."""
+        coverage_result = CoverageResult(
+            package_id=package_id,
+            graph_version_id=graph_version_id,
+            coverage_score=kva_result.coverage_score,
+            sufficiency_gate_passed=kva_result.is_sufficient,
+            domain_breakdown_json=json.dumps(kva_result.domain_breakdown),
+        )
+        self.db.add(coverage_result)
+        self.db.flush()
+        return coverage_result
 
     # -- Stage 3: Gap Closure Loop ---------------------------------------
 
