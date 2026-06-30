@@ -218,6 +218,7 @@ class DemoRunner:
             self.db.add_all(persisted_gaps)
             self.db.flush()
 
+        update_results: list = []
         if not kva_result.is_sufficient:
             self._transition(log, program_id, "Gap Resolution", "Sufficiency gate not yet met.")
             update_results = self.runner.close_gaps_until_sufficient(package_id, interpretation_for_gap)
@@ -250,14 +251,30 @@ class DemoRunner:
         # guard_validation_to_assessment) reads the latest *persisted*
         # CoverageResult row, not WorkflowRunner's in-memory KVAResult --
         # so the real coverage row must exist before this transition is
-        # attempted. Calls the same WorkflowRunner.persist_coverage_result
-        # every real (non-demo) caller now uses too, instead of building
-        # the row inline here -- this used to be the only writer in the
-        # codebase, and it was missing domain_breakdown_json; both gaps
-        # are fixed together by routing through the one shared function.
-        coverage_result = self.runner.persist_coverage_result(
-            package_id, kai_result.graph_version.id, kva_result
-        )
+        # attempted.
+        #
+        # [Round 2 correction]: this used to always persist a fresh row
+        # here, against kai_result.graph_version.id -- the v1 ingestion-
+        # time graph version, never refreshed. That was only correct
+        # when this package needed zero gap-closure iterations (the
+        # `if not kva_result.is_sufficient:` block above never ran, so
+        # the graph genuinely never advanced past v1, and this is still
+        # the only writer for that branch). Once gap closure DOES run,
+        # services/graph_update.py's close_gap() now persists its own
+        # CoverageResult per iteration, correctly tied to each
+        # iteration's own fresh graph version -- so re-persisting here
+        # against the stale v1 id would both duplicate that row AND tag
+        # it with the wrong graph_version_id (verified empirically: a
+        # one-gap-closure demo run produced graph v1+v2, but the old
+        # code's one CoverageResult row was tagged v1's id while
+        # coverage_score=1.0 was actually v2's result). Reuse the
+        # already-correct row close_gap() just persisted instead.
+        if update_results:
+            coverage_result = update_results[-1].coverage_result
+        else:
+            coverage_result = self.runner.persist_coverage_result(
+                package_id, kai_result.graph_version.id, kva_result
+            )
 
         advanced_to_assessment = self._transition(
             log, program_id, "Assessment", "Sufficiency gate evaluation for Assessment entry."
@@ -373,6 +390,7 @@ class DemoRunner:
             self.db.add_all(persisted_gaps)
             self.db.flush()
 
+        update_results: list = []
         if not kva_result.is_sufficient:
             update_results = self.runner.close_gaps_until_sufficient(package_id, interpretation_for_gap)
             kva_result = update_results[-1].kva_result if update_results else kva_result
@@ -394,14 +412,19 @@ class DemoRunner:
             # data, so stop narrating rather than fabricate scenes 5-8.
             return scenes
 
-        # Same shared writer as run_full_demo's matching step above --
-        # see WorkflowRunner.persist_coverage_result's docstring for the
-        # full bug-fix rationale (domain_breakdown_json was previously
-        # dropped here, and this was one of only two real writers of
-        # CoverageResult in the whole codebase before this fix).
-        coverage_result = self.runner.persist_coverage_result(
-            package_id, kai_result.graph_version.id, kva_result
-        )
+        # [Round 2 correction]: same fix as run_full_demo's matching
+        # step -- see services/coverage_persistence.py for the full
+        # history. Reuse close_gap()'s own correctly-versioned row when
+        # gap closure ran (update_results non-empty); only persist a
+        # fresh one here when this package was already sufficient with
+        # zero iterations, the one case where kai_result.graph_version.id
+        # (v1) is still correct because the graph never advanced past it.
+        if update_results:
+            coverage_result = update_results[-1].coverage_result
+        else:
+            coverage_result = self.runner.persist_coverage_result(
+                package_id, kai_result.graph_version.id, kva_result
+            )
 
         package_dict, package_row = self.runner.generate_assessment(package_id, use_cache=False)
         scenes.append(SceneResult(
