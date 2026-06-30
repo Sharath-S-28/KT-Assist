@@ -71,6 +71,7 @@ from sqlalchemy.orm import Session
 import config
 from models.coverage import CoverageResult
 from services.claude_client import ClaudeClient
+from services.coverage_persistence import persist_coverage_result
 from services.evidence_detection import _significant_words
 from services.explanation_engine import ExplanationEngine, ExplanationResult
 from services.gap_governance import GapGovernanceState
@@ -159,53 +160,28 @@ class WorkflowRunner:
     def persist_coverage_result(
         self, package_id: str, graph_version_id: str, kva_result: KVAResult
     ) -> CoverageResult:
-        """Persist validate()'s KVAResult as a CoverageResult row.
+        """Thin wrapper around services.coverage_persistence.
+        persist_coverage_result -- matches this class's own established
+        convention (validate() above is an equally thin wrapper around
+        services.kva.run_kva); see that module for the full bug history
+        across both rounds this fix took, and why the canonical
+        definition lives there rather than here.
 
-        [Bug fix, found live-demo-walkthrough]: this row previously had no
-        real (non-demo, non-test) writer anywhere in the codebase --
-        validate() above returns a KVAResult but never saves it, and the
-        one router-layer comment claiming "services/routers/packages.py
-        persists it onto a CoverageResult row yet" (services/coverage_
-        dashboard_service.py's docstring) does not match that file, which
-        is 39 lines of create/list/get package and never touches coverage
-        at all. services.kase.score_and_persist_readiness's own docstring
-        independently assumes this row "already computed and persisted by
-        KVA" -- an assumption nothing upheld outside DemoRunner's two
-        separate inline CoverageResult(...) constructions (themselves
-        missing domain_breakdown_json, the original, narrower bug this
-        was meant to fix). Folding both fixes into one: this is now the
-        single real writer, and DemoRunner's two sites call it instead of
-        duplicating the construction.
-
-        Deliberately a separate method from validate(), not folded into
-        it, for the same reason load_graph_version's return value was
-        kept untouched rather than widened to also carry the graph
-        version row's id (an 8-call-site shared utility, too wide a
-        blast radius for this fix): validate() returns a GraphPayload-
-        derived KVAResult with no DB row reference in it, while the
-        KnowledgeGraphVersion row's id only exists on ingest()'s
-        KAIPipelineResult. Every real caller already holds that id by the
-        time it calls this, exactly like score_and_persist_readiness
-        already requires its own caller to hand in a CoverageResult it
-        does not compute itself -- the same established pattern, applied
-        one stage earlier.
-
-        Pure persistence, zero new computation: every field written here
-        was already computed by run_kva() inside validate(); this method
-        only serializes and saves it, never recomputes or re-derives it
-        (the same restriction coverage_dashboard_service.py's docstring
-        already states for the read side, mirrored here for the write
-        side)."""
-        coverage_result = CoverageResult(
-            package_id=package_id,
-            graph_version_id=graph_version_id,
-            coverage_score=kva_result.coverage_score,
-            sufficiency_gate_passed=kva_result.is_sufficient,
-            domain_breakdown_json=json.dumps(kva_result.domain_breakdown),
+        [Round 1 -> round 2 correction]: this method originally built
+        the CoverageResult row inline, right here. Round 2 found a
+        second real (non-demo) writer -- services/graph_update.py's
+        close_gap(), the function services/routers/gaps.py's live
+        submit_gap_response endpoint calls directly, with no dependency
+        on WorkflowRunner at all -- that also needed this same logic,
+        and close_gap() cannot import from this module (workflow_runner.py
+        already imports FROM graph_update.py, so the reverse would be
+        circular). The body moved to services/coverage_persistence.py,
+        a small leaf module both call sites can import without a cycle;
+        this method now only forwards to it, the same shape validate()
+        already has."""
+        return persist_coverage_result(
+            self.db, package_id, graph_version_id, kva_result
         )
-        self.db.add(coverage_result)
-        self.db.flush()
-        return coverage_result
 
     # -- Stage 3: Gap Closure Loop ---------------------------------------
 

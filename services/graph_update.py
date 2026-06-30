@@ -29,8 +29,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from models.coverage import CoverageResult
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import KnowledgeObject, Relationship
+from services.coverage_persistence import persist_coverage_result
 from services.graph_storage import load_graph_version, save_graph_version
 from services.kttl import detect_package_template
 from services.coverage_engine import compute_coverage
@@ -138,6 +140,7 @@ class GraphUpdateResult:
     coverage_delta: float
     change_summary: str
     kva_result: KVAResult
+    coverage_result: "CoverageResult"  # the row this update just persisted
 
     @property
     def loop_terminated(self) -> bool:
@@ -169,6 +172,24 @@ def close_gap(
     kva_result = run_kva(new_payload, claude_client=claude_client)
     coverage_delta = kva_result.coverage_score - previous_coverage_score
 
+    # [Bug fix, round 2]: this is the actual live (non-demo) caller of
+    # run_kva() in the entire codebase -- services/routers/gaps.py's
+    # submit_gap_response calls close_gap directly on every real gap
+    # response a user submits. Previously this function returned
+    # kva_result inline for the HTTP response but never persisted it,
+    # so any later read (e.g. the Validation Center dashboard) saw
+    # stale or missing CoverageResult data even though a correct
+    # computation had genuinely just happened. version_row.id is this
+    # iteration's own fresh graph version -- not a stale id carried
+    # over from ingestion -- so a multi-gap closure loop correctly gets
+    # one CoverageResult row per version, matching the FK's own implied
+    # cardinality (see services/coverage_persistence.py for the full
+    # history, including the versioning bug found and fixed alongside
+    # this one).
+    coverage_result = persist_coverage_result(
+        db, package_id, version_row.id, kva_result
+    )
+
     return GraphUpdateResult(
         package_id=package_id,
         previous_version=previous_payload.version,
@@ -178,4 +199,5 @@ def close_gap(
         coverage_delta=coverage_delta,
         change_summary=change_summary,
         kva_result=kva_result,
+        coverage_result=coverage_result,
     )
