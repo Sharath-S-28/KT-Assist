@@ -11,3 +11,12 @@ venv/
 .pytest_cache/
 *.egg-info/
 .DS_Store
+
+# Runtime-uploaded knowledge package assets (services/asset_ingestion.py
+# writes to assets/<package_id>/<asset_id>_<filename> -- config.ASSETS_DIR).
+# Test runs and local dev sessions populate these as a side effect of
+# ingesting packages; they are never meant to be version-controlled.
+# This pattern only matches subdirectories of assets/, so the brand
+# logo files committed directly in assets/ (kt_logo.png, kt_logo.svg,
+# kt_logo_icon.png, kt_logo_cube.png) are unaffected.
+assets/*/
