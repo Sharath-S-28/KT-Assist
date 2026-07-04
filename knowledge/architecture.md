@@ -36,7 +36,7 @@ flowchart LR
 ## 3. Critical Logical Flows
 - **Auth:** none — internal single-user platform; FastAPI endpoints are unauthenticated by design. Do not add auth without a Sharath ruling.
 - **DB:** single SQLite file, WAL mode; all writes through SQLAlchemy sessions (`services/core/repository.py` base). Graph is **versioned** (`graph_version_id`); gap closure advances v1→v2 — always re-read current version, never cache IDs across mutations.
-- **Scoring (cardinal rule):** ALL scoring — coverage %, competency, pillar, OIS, gates, readiness — is deterministic **Python** (`config/scoring.py` constants). Claude API is never a scorer. Enforced by `tests/invariants/test_architectural_boundaries.py`.
+- **Scoring (cardinal rule):** ALL scoring — coverage %, competency, pillar, OIS, gates, readiness — is deterministic **Python** (`config/scoring.py` constants). Claude API is never a scorer. Enforced by `tests/invariants/test_architectural_boundaries.py`. Pillar score = weighted intra-pillar average (Chunk 3 competency weights, normalized per pillar) — not a simple average. Competency bands: Fail < 70, Warning 70–79, Pass ≥ 80.
 - **Frontend boundary:** `frontend/` may import only `api_client` + theme; direct service imports fail `tests/test_frontend_boundary.py`.
 - **Coverage persistence:** `services/coverage/coverage_persistence.py` is a deliberate leaf module (breaks `graph_update` ↔ `workflow_runner` circular import). Upload endpoint runs `ingest() → validate() → persist_coverage_result()`.
 - **Lifecycle:** program `lifecycle_state` advances **only through HTTP endpoints** (Bug #1 fix); DemoRunner drives the pipeline via HTTP, golden values frozen: coverage 63%→89%, OIS 84, READY/Silver.
