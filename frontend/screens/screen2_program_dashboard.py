@@ -20,7 +20,7 @@ default, and the spec doesn't pin a navigation mechanism finer than
 
 import streamlit as st
 
-from frontend.api_client import ApiClient
+from frontend.api_client import ApiClient, ApiError
 from frontend.components import lifecycle_tracker, package_card
 from frontend.theme import inject_global_css
 
@@ -29,9 +29,28 @@ def render(client: ApiClient) -> None:
     inject_global_css()
     st.title("KT Program Dashboard")
 
+    # ── Create Program ──────────────────────────────────────────────────────
+    with st.expander("➕ Create New Program", expanded=False):
+        with st.form("create_program_form"):
+            prog_name = st.text_input("Program Name")
+            prog_desc = st.text_area("Description (optional)", height=80)
+            prog_submitted = st.form_submit_button("Create Program")
+            if prog_submitted:
+                if not prog_name.strip():
+                    st.error("Program name is required.")
+                else:
+                    try:
+                        client.create_program(name=prog_name.strip(), description=prog_desc.strip() or None)
+                    except ApiError as exc:
+                        st.error(f"Could not create program: {exc.message}")
+                    else:
+                        st.success(f"Created program '{prog_name}'.")
+                        st.rerun()
+
+    # ── Program list ────────────────────────────────────────────────────────
     programs = client.list_programs()
     if not programs:
-        st.info("No KT programs exist yet. Create one to get started.")
+        st.info("No KT programs exist yet. Use '➕ Create New Program' above to get started.")
         return
 
     selected_name = st.selectbox("Program", options=[p.name for p in programs])
