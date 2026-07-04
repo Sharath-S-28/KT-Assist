@@ -1,0 +1,68 @@
+{
+  "mock": true,
+  "echo": {
+    "objects": [
+      {
+        "id": "task-inv-source",
+        "object_type": "Task",
+        "name": "Retrieve SAP MM Inventory Extract",
+        "description": "Receive the pipe-delimited Inventory_Aging_MMMYYYY.txt file, auto-emailed by the ERP team; exact recipient email address to be confirmed with Vijay."
+      },
+      {
+        "id": "task-inv-import",
+        "object_type": "Task",
+        "name": "Import Pipe-Delimited Inventory File",
+        "description": "Must use Excel's Import function (not double-click-open) or the pipe-delimited data collapses into a single column."
+      },
+      {
+        "id": "rule-inv-aging-cols",
+        "object_type": "Business Rule",
+        "name": "Four Aging Bucket Columns Required",
+        "description": "The dashboard requires exactly four aging columns in order (0-30, 31-60, 61-90, 90-plus); missing any one causes a PBI error."
+      },
+      {
+        "id": "ki-missing-90plus-col",
+        "object_type": "Known Issue",
+        "name": "ERP Extract Sometimes Omits 90-Plus Column",
+        "description": "The SAP MM extraction occasionally drops the 90-plus aging column entirely when there is no data in it; must be added back manually as an empty column."
+      },
+      {
+        "id": "ki-no-crosscheck-formula",
+        "object_type": "Known Issue",
+        "name": "No Formal Quantity Cross-Check Formula",
+        "description": "Total quantity is meant to roughly match the Supply Chain report but there is no documented cross-check formula; previously done by eye, flagging if off by more than 10-15%."
+      },
+      {
+        "id": "esc-erp-extraction",
+        "object_type": "Escalation",
+        "name": "ERP Extraction Issue Contact",
+        "description": "ERP/SAP MM extraction issues are escalated to Vijay."
+      },
+      {
+        "id": "task-inv-costvalue",
+        "object_type": "Task",
+        "name": "Add Cost Value Column",
+        "description": "Multiply Quantity by Unit Cost, where Unit Cost is looked up from Item_Master.xlsx (maintained by the Costing team on SharePoint), not present in the ERP extract itself."
+      },
+      {
+        "id": "dep-item-master",
+        "object_type": "Dependency",
+        "name": "Item_Master.xlsx",
+        "description": "Costing-team-maintained SharePoint file providing per-item Unit Cost, required to compute the Inventory dashboard's Cost Value column."
+      },
+      {
+        "id": "task-inv-flag",
+        "object_type": "Task",
+        "name": "Add Review Flag Column",
+        "description": "IF formula (e.g. =IF(G2>0,\"Yes\",\"No\")) flagging any item with nonzero 90-plus-day aged quantity for review."
+      },
+      {
+        "id": "task-inv-refresh",
+        "object_type": "Task",
+        "name": "Refresh & Publish Inventory Dashboard",
+        "description": "Refresh Inventory_Aging_Dashboard.pbix and publish to the Supply Chain Analytics workspace."
+      }
+    ]
+  },
+  "note": "DEV_MODE default mock \u2014 supply mock_response for deterministic test data."
+}

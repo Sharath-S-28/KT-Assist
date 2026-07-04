@@ -1,0 +1,60 @@
+{
+  "objects": [
+    {
+      "id": "task-rev-notify",
+      "object_type": "Task",
+      "name": "Notify #finance-reporting Channel",
+      "description": "Informal Teams message to #finance-reporting confirming the weekly revenue report has been updated.",
+      "criticality": "Supporting",
+      "confidence": 0.8
+    },
+    {
+      "id": "proc-returns",
+      "object_type": "Process",
+      "name": "Customer Returns Dashboard Refresh & Publish",
+      "description": "Bi-weekly refresh/publish of the Ops-owned Customer Returns dashboard; original report builder (Marcus) has already left the company.",
+      "criticality": "Important",
+      "confidence": 0.9
+    },
+    {
+      "id": "esc-returns-report-owner",
+      "object_type": "Escalation",
+      "name": "Returns Report Design Issue Contact",
+      "description": "Original report author (Marcus) no longer at the company; outgoing owner believes someone on the Ops team ('maybe Deepa', last name unknown) could help with report-design issues.",
+      "criticality": "Important",
+      "confidence": 0.55
+    },
+    {
+      "id": "sys-salesforce",
+      "object_type": "System",
+      "name": "Salesforce CRM",
+      "description": "Source system for Returns data; a CRM team member (Anita) runs a report and emails it to a distribution list.",
+      "criticality": "Important",
+      "confidence": 0.85
+    },
+    {
+      "id": "esc-crm-distribution",
+      "object_type": "Escalation",
+      "name": "CRM Distribution List Access",
+      "description": "New owner must be added to the distribution list that receives the Salesforce returns export; the exact list name is unknown and must be obtained from IT or Anita directly.",
+      "criticality": "Supporting",
+      "confidence": 0.5
+    },
+    {
+      "id": "task-ret-source",
+      "object_type": "Task",
+      "name": "Retrieve Salesforce Returns CSV Export",
+      "description": "Receive Returns_Data_MMYYYY.csv, emailed by Anita from Salesforce, typically the Friday before the Monday refresh.",
+      "criticality": "Important",
+      "confidence": 0.85
+    },
+    {
+      "id": "dep-ret-path",
+      "object_type": "Dependency",
+      "name": "Hardcoded Returns File Path",
+      "description": "Returns Power BI file is hardcoded to D:\\Data\\PBI_Refresh\\Returns\\Raw\\, same limitation as Revenue.",
+      "criticality": "Important",
+      "confidence": 0.85
+    }
+  ]
+}

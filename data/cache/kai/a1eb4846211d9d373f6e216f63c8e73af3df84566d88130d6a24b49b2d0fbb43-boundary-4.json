@@ -1,0 +1,68 @@
+{
+  "mock": true,
+  "echo": {
+    "objects": [
+      {
+        "id": "task-inv-distribute",
+        "object_type": "Task",
+        "name": "Export & Email Excel to Supply Chain Director",
+        "description": "Because the Supply Chain Director (Arjun Mehta) doesn't use Power BI Service, export the main table as Excel and email it directly to him (CC warehouse managers) after publishing."
+      },
+      {
+        "id": "dep-pbi-version",
+        "object_type": "Dependency",
+        "name": "Power BI Desktop October 2024+ Requirement",
+        "description": "A connector change in this version is required for the Revenue dashboard to refresh correctly; older versions break it."
+      },
+      {
+        "id": "sys-sharepoint",
+        "object_type": "System",
+        "name": "SharePoint (Finance Site)",
+        "description": "Hosts all three .pbix files (PBI Reports folder), the Revenue raw extract drop folder, and the Item_Master.xlsx costing file; also provides version history for recovery."
+      },
+      {
+        "id": "ki-credentials-error",
+        "object_type": "Known Issue",
+        "name": "Data Source Credentials Error",
+        "description": "Appears when a refresh's underlying Excel/CSV file path has changed or the file isn't in the expected folder."
+      },
+      {
+        "id": "ki-column-not-found",
+        "object_type": "Known Issue",
+        "name": "Expression Error: Column Not Found (Revenue)",
+        "description": "Occurs when the Region Lookup table gains a new column or a SAP-extract column is renamed; fixed manually in Power Query's Transform Data step. No written guide exists for this fix."
+      },
+      {
+        "id": "ki-encoding",
+        "object_type": "Known Issue",
+        "name": "Inventory TXT Encoding Issue",
+        "description": "Occasionally the pipe-delimited file is ANSI instead of UTF-8, producing garbled characters; must be re-saved as UTF-8 in Notepad."
+      },
+      {
+        "id": "rule-maintenance-window",
+        "object_type": "Business Rule",
+        "name": "Scheduled Maintenance Windows",
+        "description": "Avoid refreshing during the Power BI Service window (Sunday 2-4 AM IST) or SAP's monthly maintenance window (last Saturday, ~10 PM-2 AM), which can affect Inventory data availability."
+      },
+      {
+        "id": "risk-no-backup-schedule",
+        "object_type": "Risk",
+        "name": "No Formal Backup Schedule",
+        "description": "Recovery relies entirely on SharePoint's built-in version history; there is no formal, scheduled backup process for any of the three dashboards."
+      },
+      {
+        "id": "ki-no-sop",
+        "object_type": "Known Issue",
+        "name": "No Central SOP or Documentation Exists",
+        "description": "Explicitly confirmed by the outgoing owner: 'There's nothing written down. This has all been in my head.' No consolidated SOP exists for any of the three dashboards prior to this KT session."
+      },
+      {
+        "id": "risk-single-person-knowledge",
+        "object_type": "Risk",
+        "name": "Single-Person Institutional Knowledge",
+        "description": "Refresh procedures, contacts, validation heuristics, and error fixes for all three dashboards existed only in the outgoing owner's head prior to this KT session."
+      }
+    ]
+  },
+  "note": "DEV_MODE default mock \u2014 supply mock_response for deterministic test data."
+}

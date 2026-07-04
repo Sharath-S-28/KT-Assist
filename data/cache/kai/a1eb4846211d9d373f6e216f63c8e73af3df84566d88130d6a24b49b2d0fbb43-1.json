@@ -1,0 +1,52 @@
+{
+  "objects": [
+    {
+      "id": "dep-rev-path",
+      "object_type": "Dependency",
+      "name": "Hardcoded Revenue File Path",
+      "description": "Revenue Power BI file is hardcoded to D:\\Data\\PBI_Refresh\\Revenue\\Raw\\; must be remapped or copied to that exact path on any other machine.",
+      "criticality": "Critical",
+      "confidence": 0.92
+    },
+    {
+      "id": "task-rev-source",
+      "object_type": "Task",
+      "name": "Retrieve & Place Revenue Extract",
+      "description": "Download the Revenue_Weekly_YYYYMMDD.xlsx export from the Finance SharePoint site (Documents/Reports/Weekly Revenue Raw) and place it at the hardcoded local path without opening/resaving it.",
+      "criticality": "Critical",
+      "confidence": 0.9
+    },
+    {
+      "id": "rule-rev-rowcount",
+      "object_type": "Business Rule",
+      "name": "Revenue Row Count Expected Range",
+      "description": "Expected row count is ~2,000-2,500; below 1,500 or above 3,000 signals a likely SAP extraction problem.",
+      "criticality": "Important",
+      "confidence": 0.88
+    },
+    {
+      "id": "task-rev-validate",
+      "object_type": "Task",
+      "name": "Validate Revenue Extract Data Quality",
+      "description": "Check row count against expected range, confirm no blanks in the Net Revenue column (F), and confirm the date column (B) only contains current-week dates.",
+      "criticality": "Critical",
+      "confidence": 0.9
+    },
+    {
+      "id": "esc-sap-issues",
+      "object_type": "Escalation",
+      "name": "SAP Extraction Issue Contact",
+      "description": "Historically escalated to Suresh in Finance, who handles SAP extractions. Outgoing owner is not sure Suresh remains the right contact after handover.",
+      "criticality": "Important",
+      "confidence": 0.75
+    },
+    {
+      "id": "risk-hardcoded-paths",
+      "object_type": "Risk",
+      "name": "Hardcoded Local File Path Fragility",
+      "description": "All three dashboards depend on hardcoded local file paths; working from a different machine breaks refresh unless the path is manually remapped or replicated.",
+      "criticality": "Important",
+      "confidence": 0.85
+    }
+  ]
+}

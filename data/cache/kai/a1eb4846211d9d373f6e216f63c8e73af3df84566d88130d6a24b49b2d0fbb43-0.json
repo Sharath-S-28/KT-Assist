@@ -1,0 +1,28 @@
+{
+  "objects": [
+    {
+      "id": "proc-revenue",
+      "object_type": "Process",
+      "name": "Weekly Revenue Dashboard Refresh & Publish",
+      "description": "Weekly refresh and publish of the Revenue Power BI dashboard for CFO/Finance leadership. Most time-sensitive of the three dashboards.",
+      "criticality": "Critical",
+      "confidence": 0.97
+    },
+    {
+      "id": "rule-rev-sla",
+      "object_type": "Business Rule",
+      "name": "Revenue Refresh SLA",
+      "description": "Source data must be available by 8 AM Monday; the report must be published by 10 AM Monday.",
+      "criticality": "Critical",
+      "confidence": 0.95
+    },
+    {
+      "id": "sys-sap-bw",
+      "object_type": "System",
+      "name": "SAP BW",
+      "description": "Source system for the Revenue dashboard; Finance runs a Sunday-night extraction job producing an Excel export.",
+      "criticality": "Critical",
+      "confidence": 0.9
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "objects": [
+    {
+      "id": "task-rev-region",
+      "object_type": "Task",
+      "name": "Map Region Bucket via VLOOKUP",
+      "description": "Add a Region Group column via VLOOKUP(H2, Region_Lookup!A:B, 2, FALSE) against the Region_Lookup tab; unmapped region codes must be added manually and reported to Finance.",
+      "criticality": "Important",
+      "confidence": 0.88
+    },
+    {
+      "id": "dep-region-lookup",
+      "object_type": "Dependency",
+      "name": "Region_Lookup Tab",
+      "description": "In-workbook lookup tab mapping SAP region codes to region groups; can go stale when SAP adds new region codes.",
+      "criticality": "Important",
+      "confidence": 0.85
+    },
+    {
+      "id": "sys-pbi-desktop",
+      "object_type": "System",
+      "name": "Power BI Desktop",
+      "description": "Used to open the .pbix file, verify/refresh the data source path, and publish to the Power BI Service.",
+      "criticality": "Critical",
+      "confidence": 0.92
+    },
+    {
+      "id": "sys-pbi-service",
+      "object_type": "System",
+      "name": "Power BI Service",
+      "description": "Hosted workspace destination all three dashboards are published to (e.g. Finance Analytics Workspace for Revenue).",
+      "criticality": "Critical",
+      "confidence": 0.9
+    },
+    {
+      "id": "task-rev-refresh",
+      "object_type": "Task",
+      "name": "Refresh & Publish Revenue Dashboard",
+      "description": "Verify the data source path in Transform Data/Data Source Settings, Close & Apply, Refresh (~3-5 min; investigate if over 10), then Publish to the Finance Analytics Workspace.",
+      "criticality": "Critical",
+      "confidence": 0.9
+    }
+  ]
+}

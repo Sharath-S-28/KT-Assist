@@ -1,0 +1,396 @@
+{
+  "relationships": [
+    {
+      "id": "rel-ht-rev-0",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-revenue",
+      "target_id": "task-rev-source",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-rev-1",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-revenue",
+      "target_id": "task-rev-validate",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-rev-2",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-revenue",
+      "target_id": "task-rev-region",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-rev-3",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-revenue",
+      "target_id": "task-rev-refresh",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-rev-4",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-revenue",
+      "target_id": "task-rev-notify",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-ret-0",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-returns",
+      "target_id": "task-ret-source",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-ret-1",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-returns",
+      "target_id": "task-ret-validate",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-ret-2",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-returns",
+      "target_id": "task-ret-standardize",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-ret-3",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-returns",
+      "target_id": "task-ret-refresh",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-inv-0",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-inventory",
+      "target_id": "task-inv-source",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-inv-1",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-inventory",
+      "target_id": "task-inv-import",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-inv-2",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-inventory",
+      "target_id": "task-inv-costvalue",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-inv-3",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-inventory",
+      "target_id": "task-inv-flag",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-inv-4",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-inventory",
+      "target_id": "task-inv-refresh",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-ht-inv-5",
+      "relationship_type": "HAS_TASK",
+      "source_id": "proc-inventory",
+      "target_id": "task-inv-distribute",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-us-1",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-rev-source",
+      "target_id": "sys-sap-bw",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-2",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-rev-source",
+      "target_id": "sys-sharepoint",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-3",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-rev-refresh",
+      "target_id": "sys-pbi-desktop",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-us-4",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-rev-refresh",
+      "target_id": "sys-pbi-service",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-us-5",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-ret-source",
+      "target_id": "sys-salesforce",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-6",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-ret-refresh",
+      "target_id": "sys-pbi-desktop",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-7",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-ret-refresh",
+      "target_id": "sys-pbi-service",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-8",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-inv-source",
+      "target_id": "sys-sap-mm",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-9",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-inv-refresh",
+      "target_id": "sys-pbi-desktop",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-10",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-inv-refresh",
+      "target_id": "sys-pbi-service",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-us-11",
+      "relationship_type": "USES_SYSTEM",
+      "source_id": "task-inv-costvalue",
+      "target_id": "sys-sharepoint",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-do-1",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-rev-source",
+      "target_id": "dep-rev-path",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-do-2",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-rev-region",
+      "target_id": "dep-region-lookup",
+      "confidence": 0.88
+    },
+    {
+      "id": "rel-do-3",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-ret-source",
+      "target_id": "dep-ret-path",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-do-4",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-inv-source",
+      "target_id": "dep-inv-path",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-do-5",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-inv-costvalue",
+      "target_id": "dep-item-master",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-do-6",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-rev-refresh",
+      "target_id": "dep-pbi-version",
+      "confidence": 0.8
+    },
+    {
+      "id": "rel-do-7",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-ret-refresh",
+      "target_id": "dep-pbi-version",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-do-8",
+      "relationship_type": "DEPENDS_ON",
+      "source_id": "task-inv-refresh",
+      "target_id": "dep-pbi-version",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-gb-1",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-rev-refresh",
+      "target_id": "rule-rev-sla",
+      "confidence": 0.9
+    },
+    {
+      "id": "rel-gb-2",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-rev-validate",
+      "target_id": "rule-rev-rowcount",
+      "confidence": 0.88
+    },
+    {
+      "id": "rel-gb-3",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-ret-validate",
+      "target_id": "rule-ret-rowcount",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-gb-4",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-inv-import",
+      "target_id": "rule-inv-aging-cols",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-gb-5",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-rev-refresh",
+      "target_id": "rule-maintenance-window",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-gb-6",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-ret-refresh",
+      "target_id": "rule-maintenance-window",
+      "confidence": 0.7
+    },
+    {
+      "id": "rel-gb-7",
+      "relationship_type": "GOVERNED_BY",
+      "source_id": "task-inv-refresh",
+      "target_id": "rule-maintenance-window",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-hr-1",
+      "relationship_type": "HAS_RISK",
+      "source_id": "task-rev-source",
+      "target_id": "risk-hardcoded-paths",
+      "confidence": 0.85
+    },
+    {
+      "id": "rel-hr-2",
+      "relationship_type": "HAS_RISK",
+      "source_id": "task-ret-standardize",
+      "target_id": "risk-manual-standardization",
+      "confidence": 0.8
+    },
+    {
+      "id": "rel-hr-3",
+      "relationship_type": "HAS_RISK",
+      "source_id": "task-inv-refresh",
+      "target_id": "risk-no-backup-schedule",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-hr-4",
+      "relationship_type": "HAS_RISK",
+      "source_id": "task-rev-validate",
+      "target_id": "risk-single-person-knowledge",
+      "confidence": 0.8
+    },
+    {
+      "id": "rel-et-1",
+      "relationship_type": "ESCALATES_TO",
+      "source_id": "task-rev-validate",
+      "target_id": "esc-sap-issues",
+      "confidence": 0.8
+    },
+    {
+      "id": "rel-et-2",
+      "relationship_type": "ESCALATES_TO",
+      "source_id": "task-ret-validate",
+      "target_id": "esc-returns-report-owner",
+      "confidence": 0.6
+    },
+    {
+      "id": "rel-et-3",
+      "relationship_type": "ESCALATES_TO",
+      "source_id": "task-ret-source",
+      "target_id": "esc-crm-distribution",
+      "confidence": 0.6
+    },
+    {
+      "id": "rel-et-4",
+      "relationship_type": "ESCALATES_TO",
+      "source_id": "task-inv-source",
+      "target_id": "esc-erp-extraction",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-hki-1",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-rev-refresh",
+      "target_id": "ki-column-not-found",
+      "confidence": 0.8
+    },
+    {
+      "id": "rel-hki-2",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-rev-refresh",
+      "target_id": "ki-credentials-error",
+      "confidence": 0.7
+    },
+    {
+      "id": "rel-hki-3",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-inv-import",
+      "target_id": "ki-encoding",
+      "confidence": 0.75
+    },
+    {
+      "id": "rel-hki-4",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-inv-import",
+      "target_id": "ki-missing-90plus-col",
+      "confidence": 0.8
+    },
+    {
+      "id": "rel-hki-5",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-inv-refresh",
+      "target_id": "ki-no-crosscheck-formula",
+      "confidence": 0.7
+    },
+    {
+      "id": "rel-hki-6",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-ret-refresh",
+      "target_id": "ki-returns-workspace-uncertain",
+      "confidence": 0.65
+    },
+    {
+      "id": "rel-hki-7",
+      "relationship_type": "HAS_KNOWN_ISSUE",
+      "source_id": "task-rev-refresh",
+      "target_id": "ki-no-sop",
+      "confidence": 0.9
+    }
+  ]
+}

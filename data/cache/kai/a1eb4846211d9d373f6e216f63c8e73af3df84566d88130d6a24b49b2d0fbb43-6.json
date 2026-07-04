@@ -1,0 +1,60 @@
+{
+  "objects": [
+    {
+      "id": "task-inv-costvalue",
+      "object_type": "Task",
+      "name": "Add Cost Value Column",
+      "description": "Multiply Quantity by Unit Cost, where Unit Cost is looked up from Item_Master.xlsx (maintained by the Costing team on SharePoint), not present in the ERP extract itself.",
+      "criticality": "Important",
+      "confidence": 0.8
+    },
+    {
+      "id": "dep-item-master",
+      "object_type": "Dependency",
+      "name": "Item_Master.xlsx",
+      "description": "Costing-team-maintained SharePoint file providing per-item Unit Cost, required to compute the Inventory dashboard's Cost Value column.",
+      "criticality": "Important",
+      "confidence": 0.8
+    },
+    {
+      "id": "task-inv-flag",
+      "object_type": "Task",
+      "name": "Add Review Flag Column",
+      "description": "IF formula (e.g. =IF(G2>0,\"Yes\",\"No\")) flagging any item with nonzero 90-plus-day aged quantity for review.",
+      "criticality": "Important",
+      "confidence": 0.8
+    },
+    {
+      "id": "task-inv-refresh",
+      "object_type": "Task",
+      "name": "Refresh & Publish Inventory Dashboard",
+      "description": "Refresh Inventory_Aging_Dashboard.pbix and publish to the Supply Chain Analytics workspace.",
+      "criticality": "Important",
+      "confidence": 0.8
+    },
+    {
+      "id": "task-inv-distribute",
+      "object_type": "Task",
+      "name": "Export & Email Excel to Supply Chain Director",
+      "description": "Because the Supply Chain Director (Arjun Mehta) doesn't use Power BI Service, export the main table as Excel and email it directly to him (CC warehouse managers) after publishing.",
+      "criticality": "Important",
+      "confidence": 0.85
+    },
+    {
+      "id": "dep-pbi-version",
+      "object_type": "Dependency",
+      "name": "Power BI Desktop October 2024+ Requirement",
+      "description": "A connector change in this version is required for the Revenue dashboard to refresh correctly; older versions break it.",
+      "criticality": "Important",
+      "confidence": 0.85
+    },
+    {
+      "id": "sys-sharepoint",
+      "object_type": "System",
+      "name": "SharePoint (Finance Site)",
+      "description": "Hosts all three .pbix files (PBI Reports folder), the Revenue raw extract drop folder, and the Item_Master.xlsx costing file; also provides version history for recovery.",
+      "criticality": "Critical",
+      "confidence": 0.85
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "objects": [
+    {
+      "id": "ki-credentials-error",
+      "object_type": "Known Issue",
+      "name": "Data Source Credentials Error",
+      "description": "Appears when a refresh's underlying Excel/CSV file path has changed or the file isn't in the expected folder.",
+      "criticality": "Supporting",
+      "confidence": 0.75
+    },
+    {
+      "id": "ki-column-not-found",
+      "object_type": "Known Issue",
+      "name": "Expression Error: Column Not Found (Revenue)",
+      "description": "Occurs when the Region Lookup table gains a new column or a SAP-extract column is renamed; fixed manually in Power Query's Transform Data step. No written guide exists for this fix.",
+      "criticality": "Important",
+      "confidence": 0.8
+    },
+    {
+      "id": "ki-encoding",
+      "object_type": "Known Issue",
+      "name": "Inventory TXT Encoding Issue",
+      "description": "Occasionally the pipe-delimited file is ANSI instead of UTF-8, producing garbled characters; must be re-saved as UTF-8 in Notepad.",
+      "criticality": "Supporting",
+      "confidence": 0.75
+    },
+    {
+      "id": "rule-maintenance-window",
+      "object_type": "Business Rule",
+      "name": "Scheduled Maintenance Windows",
+      "description": "Avoid refreshing during the Power BI Service window (Sunday 2-4 AM IST) or SAP's monthly maintenance window (last Saturday, ~10 PM-2 AM), which can affect Inventory data availability.",
+      "criticality": "Important",
+      "confidence": 0.8
+    }
+  ]
+}

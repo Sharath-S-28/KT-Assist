@@ -1,0 +1,68 @@
+{
+  "mock": true,
+  "echo": {
+    "objects": [
+      {
+        "id": "proc-revenue",
+        "object_type": "Process",
+        "name": "Weekly Revenue Dashboard Refresh & Publish",
+        "description": "Weekly refresh and publish of the Revenue Power BI dashboard for CFO/Finance leadership. Most time-sensitive of the three dashboards."
+      },
+      {
+        "id": "rule-rev-sla",
+        "object_type": "Business Rule",
+        "name": "Revenue Refresh SLA",
+        "description": "Source data must be available by 8 AM Monday; the report must be published by 10 AM Monday."
+      },
+      {
+        "id": "sys-sap-bw",
+        "object_type": "System",
+        "name": "SAP BW",
+        "description": "Source system for the Revenue dashboard; Finance runs a Sunday-night extraction job producing an Excel export."
+      },
+      {
+        "id": "dep-rev-path",
+        "object_type": "Dependency",
+        "name": "Hardcoded Revenue File Path",
+        "description": "Revenue Power BI file is hardcoded to D:\\Data\\PBI_Refresh\\Revenue\\Raw\\; must be remapped or copied to that exact path on any other machine."
+      },
+      {
+        "id": "task-rev-source",
+        "object_type": "Task",
+        "name": "Retrieve & Place Revenue Extract",
+        "description": "Download the Revenue_Weekly_YYYYMMDD.xlsx export from the Finance SharePoint site (Documents/Reports/Weekly Revenue Raw) and place it at the hardcoded local path without opening/resaving it."
+      },
+      {
+        "id": "rule-rev-rowcount",
+        "object_type": "Business Rule",
+        "name": "Revenue Row Count Expected Range",
+        "description": "Expected row count is ~2,000-2,500; below 1,500 or above 3,000 signals a likely SAP extraction problem."
+      },
+      {
+        "id": "task-rev-validate",
+        "object_type": "Task",
+        "name": "Validate Revenue Extract Data Quality",
+        "description": "Check row count against expected range, confirm no blanks in the Net Revenue column (F), and confirm the date column (B) only contains current-week dates."
+      },
+      {
+        "id": "esc-sap-issues",
+        "object_type": "Escalation",
+        "name": "SAP Extraction Issue Contact",
+        "description": "Historically escalated to Suresh in Finance, who handles SAP extractions. Outgoing owner is not sure Suresh remains the right contact after handover."
+      },
+      {
+        "id": "risk-hardcoded-paths",
+        "object_type": "Risk",
+        "name": "Hardcoded Local File Path Fragility",
+        "description": "All three dashboards depend on hardcoded local file paths; working from a different machine breaks refresh unless the path is manually remapped or replicated."
+      },
+      {
+        "id": "task-rev-region",
+        "object_type": "Task",
+        "name": "Map Region Bucket via VLOOKUP",
+        "description": "Add a Region Group column via VLOOKUP(H2, Region_Lookup!A:B, 2, FALSE) against the Region_Lookup tab; unmapped region codes must be added manually and reported to Finance."
+      }
+    ]
+  },
+  "note": "DEV_MODE default mock \u2014 supply mock_response for deterministic test data."
+}

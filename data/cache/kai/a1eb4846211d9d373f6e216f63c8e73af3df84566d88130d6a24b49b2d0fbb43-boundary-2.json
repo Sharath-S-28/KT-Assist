@@ -1,0 +1,68 @@
+{
+  "mock": true,
+  "echo": {
+    "objects": [
+      {
+        "id": "dep-ret-path",
+        "object_type": "Dependency",
+        "name": "Hardcoded Returns File Path",
+        "description": "Returns Power BI file is hardcoded to D:\\Data\\PBI_Refresh\\Returns\\Raw\\, same limitation as Revenue."
+      },
+      {
+        "id": "rule-ret-rowcount",
+        "object_type": "Business Rule",
+        "name": "Returns Row Count Informal Range",
+        "description": "No formal check, but typically 400-600 rows per bi-weekly period; flag if empty or under ~50."
+      },
+      {
+        "id": "task-ret-validate",
+        "object_type": "Task",
+        "name": "Validate Returns Data Date Range",
+        "description": "Confirm the Return Date column (A) falls within the expected bi-weekly window."
+      },
+      {
+        "id": "task-ret-standardize",
+        "object_type": "Task",
+        "name": "Standardize Return Reason Values",
+        "description": "Manual find-and-replace to normalize inconsistent CRM export values (e.g. 'Product Defect' -> 'Defective'); no lookup table exists for this, unlike Revenue's region mapping."
+      },
+      {
+        "id": "risk-manual-standardization",
+        "object_type": "Risk",
+        "name": "Manual Standardization Error Risk",
+        "description": "Return Reason standardization relies on a manual, undocumented substitution list rather than a lookup table, making it error-prone and hard to hand off."
+      },
+      {
+        "id": "task-ret-refresh",
+        "object_type": "Task",
+        "name": "Refresh & Publish Returns Dashboard",
+        "description": "Refresh Returns_Dashboard.pbix and publish; destination workspace believed to be 'Ops Analytics Workspace' but not confirmed by the outgoing owner."
+      },
+      {
+        "id": "ki-returns-workspace-uncertain",
+        "object_type": "Known Issue",
+        "name": "Returns Workspace Name Unconfirmed",
+        "description": "Outgoing owner was not certain of the exact Power BI Service workspace name for the Returns dashboard and said he would confirm later."
+      },
+      {
+        "id": "proc-inventory",
+        "object_type": "Process",
+        "name": "Inventory Aging Report Refresh & Distribution",
+        "description": "Monthly refresh/publish/distribution of the Inventory Aging report for the Supply Chain Director and warehouse managers."
+      },
+      {
+        "id": "sys-sap-mm",
+        "object_type": "System",
+        "name": "SAP MM Module",
+        "description": "Materials-management module of SAP; source system for the Inventory Aging extract, output as a pipe-delimited TXT file at month end."
+      },
+      {
+        "id": "dep-inv-path",
+        "object_type": "Dependency",
+        "name": "Hardcoded Inventory File Path",
+        "description": "Inventory Power BI file is hardcoded to D:\\Data\\PBI_Refresh\\Inventory\\Raw\\, same limitation as Revenue/Returns."
+      }
+    ]
+  },
+  "note": "DEV_MODE default mock \u2014 supply mock_response for deterministic test data."
+}
