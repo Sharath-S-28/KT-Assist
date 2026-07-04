@@ -28,14 +28,14 @@ from sqlalchemy.orm import Session
 
 import config
 from models.ground_truth_models import GoldenResponse
-from services.claude_client import ClaudeClient
-from services.coverage_engine import compute_coverage
+from services.core.claude_client import ClaudeClient
+from services.coverage.coverage_engine import compute_coverage
 from services.datasets.dataset_loader import load_dataset
-from services.graph_update import close_gap
-from services.gap_detection import detect_gaps
-from services.kttl import detect_package_template
+from services.graph.graph_update import close_gap
+from services.coverage.gap_detection import detect_gaps
+from services.agents.kttl import detect_package_template
 from services.orchestration.workflow_runner import WorkflowRunner
-from services.response_interpretation import InterpretationResult, InterpretedObjectChange
+from services.assessment.response_interpretation import InterpretationResult, InterpretedObjectChange
 
 
 @dataclass
@@ -90,7 +90,7 @@ class DatasetValidator:
         graph, via the real Template Intelligence Engine + Coverage
         Engine -- the same per-type unit ground_truth_models.py grounds
         itself in."""
-        from services.graph_storage import load_graph_version
+        from services.graph.graph_storage import load_graph_version
 
         payload = load_graph_version(self.db, package_id)
         template = detect_package_template(payload)

@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from schemas.assurance_report import AssuranceReport
-from services.assurance_report_service import AssuranceReportService
+from services.reporting.assurance_report_service import AssuranceReportService
 from services.exporters.pdf_exporter import export_assurance_report_pdf
 from services.exporters.pptx_exporter import export_assurance_report_pptx
 

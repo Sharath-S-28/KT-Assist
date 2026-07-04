@@ -9,7 +9,7 @@ import pytest
 import config
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, KnowledgeObject, Relationship
-from services.scenario_generation import (
+from services.assessment.scenario_generation import (
     GeneratedScenario,
     generate_object_scenario,
     generate_relationship_scenario,
@@ -70,7 +70,7 @@ def test_object_scenario_rejects_unrecognized_object_type():
     node = node.model_copy(update={"object_type": "Process"})  # valid baseline
     # Force an invalid type past Pydantic validation isn't possible via the
     # model itself, so simulate the registry-miss path directly.
-    from services import scenario_generation
+    from services.assessment import scenario_generation
 
     class _FakeNode:
         id = "x1"
@@ -164,7 +164,7 @@ def test_relationship_scenario_rejects_mismatched_endpoint_types():
 
 
 def test_relationship_scenario_rejects_unrecognized_relationship_type_registry_miss():
-    from services import scenario_generation
+    from services.assessment import scenario_generation
 
     node_a = _node("Task", node_id="a")
     node_b = _node("System", node_id="b")

@@ -7,8 +7,8 @@ returns deterministic mock responses with zero API spend.
 from pathlib import Path
 
 from schemas.agent_contracts import AgentRequest
-from services.claude_client import ClaudeClient, hash_content
-from services.repository import Repository
+from services.core.claude_client import ClaudeClient, hash_content
+from services.core.repository import Repository
 
 
 def test_repository_crud(db_session, sample_program):

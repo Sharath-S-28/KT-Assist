@@ -26,7 +26,7 @@ from models import (
     PillarResult,
     ReceiverReadiness,
 )
-from services.assurance_report_service import AssuranceReportService
+from services.reporting.assurance_report_service import AssuranceReportService
 from services.exporters.pdf_exporter import export_assurance_report_pdf
 from services.exporters.pptx_exporter import export_assurance_report_pptx
 
@@ -44,7 +44,7 @@ _FORBIDDEN_SCORING_CONSTANTS = [
 # ---------------------------------------------------------------------------
 
 def test_assurance_report_service_never_references_scoring_formula_constants():
-    text = (_REPO_ROOT / "services" / "assurance_report_service.py").read_text()
+    text = (_REPO_ROOT / "services" / "reporting" / "assurance_report_service.py").read_text()
     code_only = re.sub(r'"""[\s\S]*?"""', "", text)
     for constant in _FORBIDDEN_SCORING_CONSTANTS:
         assert not re.search(rf"\bconfig\.{constant}\b", code_only), (

@@ -31,8 +31,8 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from schemas.graph import GraphPayload, NodeDetail
-from services.graph_storage import list_graph_versions, load_graph_version
-from services.graph_viewer import get_node_detail, render_graph_html
+from services.graph.graph_storage import list_graph_versions, load_graph_version
+from services.graph.graph_viewer import get_node_detail, render_graph_html
 
 router = APIRouter(prefix="/api/packages", tags=["graph"])
 

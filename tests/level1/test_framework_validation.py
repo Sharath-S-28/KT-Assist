@@ -17,12 +17,12 @@ behavior in the complete absence of any Claude client at all.
 
 import config
 from schemas.knowledge_graph import KnowledgeObject
-from services.coverage_engine import compute_coverage
-from services.evidence_detection import _keyword_overlap_status
-from services.gap_governance import GapGovernanceState, determine_completion_status
-from services.kttl import detect_package_template
-from services.kva import _evaluate_sufficiency
-from services.threshold_model import resolve_effective_ois_threshold
+from services.coverage.coverage_engine import compute_coverage
+from services.assessment.evidence_detection import _keyword_overlap_status
+from services.coverage.gap_governance import GapGovernanceState, determine_completion_status
+from services.agents.kttl import detect_package_template
+from services.agents.kva import _evaluate_sufficiency
+from services.readiness.threshold_model import resolve_effective_ois_threshold
 
 
 def _sample_payload():

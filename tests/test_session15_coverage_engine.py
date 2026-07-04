@@ -9,8 +9,8 @@ import pytest
 import config
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import KnowledgeObject
-from services.coverage_engine import compute_coverage
-from services.kttl import TemplateMatch
+from services.coverage.coverage_engine import compute_coverage
+from services.agents.kttl import TemplateMatch
 
 
 def _obj(id_, object_type, description=""):

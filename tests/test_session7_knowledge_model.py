@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 import config
 from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, KnowledgeObject, Relationship
-from services.knowledge_model import (
+from services.graph.knowledge_model import (
     GraphValidationResult,
     validate_graph,
     validate_object,

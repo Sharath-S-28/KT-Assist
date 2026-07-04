@@ -9,14 +9,14 @@ import json
 import pytest
 
 import config
-from services.graph_engine import (
+from services.graph.graph_engine import (
     build_networkx_graph,
     check_graph_integrity,
     get_neighbors,
     traverse_from,
 )
-from services.graph_storage import list_graph_versions, load_graph_version, save_graph_version
-from services.knowledge_model import validate_object, validate_relationship
+from services.graph.graph_storage import list_graph_versions, load_graph_version, save_graph_version
+from services.graph.knowledge_model import validate_object, validate_relationship
 from utils.errors import ValidationFailedError
 
 

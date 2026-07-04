@@ -41,9 +41,9 @@ import os
 import pytest
 
 import config
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 from services.orchestration.workflow_runner import GOLDEN_TOLERANCE, WorkflowRunner
-from services.response_interpretation import InterpretationResult, InterpretedObjectChange
+from services.assessment.response_interpretation import InterpretationResult, InterpretedObjectChange
 
 
 EXTRACTION_MOCK = {

@@ -19,9 +19,9 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from schemas.dashboard import CoverageDashboard, ExecutiveDashboard, ReadinessDashboard
-from services.coverage_dashboard_service import CoverageDashboardService
-from services.executive_dashboard_service import ExecutiveDashboardService
-from services.readiness_dashboard_service import ReadinessDashboardService
+from services.reporting.coverage_dashboard_service import CoverageDashboardService
+from services.reporting.executive_dashboard_service import ExecutiveDashboardService
+from services.reporting.readiness_dashboard_service import ReadinessDashboardService
 
 router = APIRouter(prefix="/api", tags=["dashboards"])
 

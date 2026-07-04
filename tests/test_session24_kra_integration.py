@@ -10,14 +10,14 @@ import pytest
 
 import config
 from models import AssessmentPackage, Scenario as ScenarioRow
-from services.graph_storage import save_graph_version
-from services.knowledge_model import validate_object, validate_relationship
-from services.kra import (
+from services.graph.graph_storage import save_graph_version
+from services.graph.knowledge_model import validate_object, validate_relationship
+from services.agents.kra import (
     compose_assessment_package,
     compose_assessment_package_for_package,
     persist_assessment_package,
 )
-from services.scenario_cache import load_scenario_package_cache
+from services.assessment.scenario_cache import load_scenario_package_cache
 
 
 @pytest.fixture(autouse=True)

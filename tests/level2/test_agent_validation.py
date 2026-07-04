@@ -27,7 +27,7 @@ import json
 import pytest
 
 from schemas.agent_contracts import AgentRequest
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +36,7 @@ from services.claude_client import ClaudeClient
 
 
 def test_kai_agent_runs_through_the_full_request_response_contract():
-    from services.kai_extraction import KAIAgent
+    from services.agents.kai_extraction import KAIAgent
 
     client = ClaudeClient(dev_mode=True, cache_enabled=False)
     agent = KAIAgent(claude_client=client)
@@ -69,7 +69,7 @@ def test_kai_agent_runs_through_the_full_request_response_contract():
 def test_kva_agent_returns_every_sub_decision():
     from schemas.graph import GraphPayload
     from schemas.knowledge_graph import KnowledgeObject
-    from services.kva import run_kva
+    from services.agents.kva import run_kva
 
     payload = GraphPayload(
         package_id="pkg-1", graph_id="g-1", version=1,
@@ -90,7 +90,7 @@ def test_kva_agent_returns_every_sub_decision():
 
 
 def test_kge_governance_never_touches_graph_or_score(db_session, sample_package):
-    from services.gap_governance import GapGovernanceState, determine_completion_status, validate_waiver
+    from services.coverage.gap_governance import GapGovernanceState, determine_completion_status, validate_waiver
 
     validate_waiver("Low", "Conditional Waiver", "Accepted by KT Manager.")
     with pytest.raises(Exception):
@@ -108,9 +108,9 @@ def test_kge_governance_never_touches_graph_or_score(db_session, sample_package)
 
 
 def test_kra_agent_composes_and_persists_a_real_assessment_package(db_session, sample_package):
-    from services.graph_storage import save_graph_version
-    from services.knowledge_model import validate_object
-    from services.kra import compose_assessment_package_for_package, persist_assessment_package
+    from services.graph.graph_storage import save_graph_version
+    from services.graph.knowledge_model import validate_object
+    from services.agents.kra import compose_assessment_package_for_package, persist_assessment_package
 
     save_graph_version(
         db_session, sample_package.id,
@@ -136,9 +136,9 @@ def test_kra_agent_composes_and_persists_a_real_assessment_package(db_session, s
 def test_kase_agent_gates_readiness_with_real_python_arithmetic(db_session, sample_program, sample_package):
     from models import AssessmentPackage, Participant, Scenario as ScenarioRow, ScenarioResponse
     from models.coverage import CoverageResult
-    from services.graph_storage import save_graph_version
-    from services.kase import score_and_persist_readiness
-    from services.knowledge_model import validate_object
+    from services.graph.graph_storage import save_graph_version
+    from services.agents.kase import score_and_persist_readiness
+    from services.graph.knowledge_model import validate_object
 
     version_row, _ = save_graph_version(
         db_session, sample_package.id,

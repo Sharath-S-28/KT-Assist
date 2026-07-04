@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from database import get_db
 from models import KnowledgePackage, KTProgram
 from schemas.knowledge_graph import KnowledgeObject, Relationship
-from services.graph_storage import save_graph_version
+from services.graph.graph_storage import save_graph_version
 from utils.errors import NotFoundError
 
 

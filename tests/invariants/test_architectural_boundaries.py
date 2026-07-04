@@ -89,7 +89,7 @@ def test_frontend_surface_never_imports_backend_internals_directly():
 
 
 def test_kai_agent_rejects_every_forbidden_action():
-    from services.kai_extraction import KAIAgent
+    from services.agents.kai_extraction import KAIAgent
     from utils.errors import AgentBoundaryViolation
 
     agent = KAIAgent.__new__(KAIAgent)  # bypass __init__'s ClaudeClient() construction
@@ -105,7 +105,7 @@ def test_kai_agent_rejects_every_forbidden_action():
 
 
 def test_kai_relationship_agent_shares_the_same_boundary():
-    from services.kai_relationship_discovery import KAIRelationshipAgent
+    from services.agents.kai_relationship_discovery import KAIRelationshipAgent
     from utils.errors import AgentBoundaryViolation
 
     agent = KAIRelationshipAgent.__new__(KAIRelationshipAgent)
@@ -119,10 +119,10 @@ def test_kai_relationship_agent_shares_the_same_boundary():
 # ---------------------------------------------------------------------------
 
 GATING_AND_SCORING_MODULES = [
-    "services/kase_scoring.py",
-    "services/threshold_model.py",
-    "services/coverage_engine.py",
-    "services/gap_governance.py",
+    "services/agents/kase_scoring.py",
+    "services/readiness/threshold_model.py",
+    "services/coverage/coverage_engine.py",
+    "services/coverage/gap_governance.py",
 ]
 
 
@@ -178,9 +178,9 @@ def test_readiness_flow_persists_in_appendix_d_order(db_session, sample_program)
     )
     from models import KnowledgePackage
     from models.coverage import CoverageResult
-    from services.graph_storage import save_graph_version
-    from services.kase import score_and_persist_readiness
-    from services.knowledge_model import validate_object
+    from services.graph.graph_storage import save_graph_version
+    from services.agents.kase import score_and_persist_readiness
+    from services.graph.knowledge_model import validate_object
 
     package = KnowledgePackage(program_id=sample_program.id, name="Invariant Package")
     db_session.add(package)

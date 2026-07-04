@@ -60,9 +60,9 @@ from schemas.assessment import (
     ScenarioResponseCreate,
     ScenarioResponseRead,
 )
-from services.gap_governance import GapGovernanceState
+from services.coverage.gap_governance import GapGovernanceState
 from services.orchestration.workflow_runner import WorkflowRunner
-from services.repository import Repository
+from services.core.repository import Repository
 from utils.errors import NotFoundError, ValidationFailedError
 
 router = APIRouter(prefix="/api/packages", tags=["assessment"])

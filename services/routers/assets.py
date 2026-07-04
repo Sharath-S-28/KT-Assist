@@ -35,7 +35,7 @@ from models import KnowledgeAsset, KnowledgePackage
 from schemas.asset import AssetRead
 from schemas.upload import ExtractedObjectSummary, UploadResult
 from services.orchestration.workflow_runner import WorkflowRunner
-from services.repository import Repository
+from services.core.repository import Repository
 
 router = APIRouter(prefix="/api/packages", tags=["assets"])
 

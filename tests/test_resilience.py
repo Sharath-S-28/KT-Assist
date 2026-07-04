@@ -13,8 +13,8 @@ import httpx
 import pytest
 import anthropic
 
-import services.resilience as resilience_mod
-from services.resilience import MAX_ATTEMPTS, _is_retryable, safe_claude_call
+import services.core.resilience as resilience_mod
+from services.core.resilience import MAX_ATTEMPTS, _is_retryable, safe_claude_call
 
 
 def _rate_limit_error() -> anthropic.RateLimitError:

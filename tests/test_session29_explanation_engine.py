@@ -35,15 +35,15 @@ from models import (
 )
 from models.coverage import CoverageResult
 from schemas.explanation import CompetencyFact, EvidenceFact, ExplanationData, GateFact, PillarFact
-from services.claude_client import ClaudeClient
-from services.explanation_data_layer import ExplanationDataLayer
-from services.explanation_engine import ExplanationEngine, ExplanationResult
-from services.explanation_narrative_layer import ContextualNarrative, ExplanationNarrativeLayer
-from services.explanation_template_layer import ExplanationTemplateLayer, TemplateNarrative
-from services.graph_storage import save_graph_version
-from services.kase import score_and_persist_readiness
-from services.knowledge_model import validate_object, validate_relationship
-from services.traceability_service import TraceabilityService, TraceNode
+from services.core.claude_client import ClaudeClient
+from services.explanation.explanation_data_layer import ExplanationDataLayer
+from services.explanation.explanation_engine import ExplanationEngine, ExplanationResult
+from services.explanation.explanation_narrative_layer import ContextualNarrative, ExplanationNarrativeLayer
+from services.explanation.explanation_template_layer import ExplanationTemplateLayer, TemplateNarrative
+from services.graph.graph_storage import save_graph_version
+from services.agents.kase import score_and_persist_readiness
+from services.graph.knowledge_model import validate_object, validate_relationship
+from services.explanation.traceability_service import TraceabilityService, TraceNode
 from utils.errors import NarrativeNumberViolation
 
 _MARKER_TEXT = "alpha bravo charlie delta echo"
@@ -188,7 +188,7 @@ def not_ready_readiness_id(db_session, sample_package, sample_participant, asses
 # ---------------------------------------------------------------------------
 
 def test_data_layer_never_applies_arithmetic_to_score_fields():
-    with open("services/explanation_data_layer.py", encoding="utf-8") as f:
+    with open("services/explanation/explanation_data_layer.py", encoding="utf-8") as f:
         lines = f.readlines()
 
     in_docstring = False

@@ -70,18 +70,18 @@ from sqlalchemy.orm import Session
 
 import config
 from models.coverage import CoverageResult
-from services.claude_client import ClaudeClient
-from services.coverage_persistence import persist_coverage_result
-from services.evidence_detection import _significant_words
-from services.explanation_engine import ExplanationEngine, ExplanationResult
-from services.gap_governance import GapGovernanceState
-from services.graph_storage import load_graph_version
-from services.graph_update import GraphUpdateResult, close_gap
-from services.kai_pipeline import KAIPipelineResult, run_kai_pipeline
-from services.kase import ReadinessRollup, score_and_persist_readiness
-from services.kra import compose_assessment_package_for_package, persist_assessment_package
-from services.kva import KVAResult, run_kva
-from services.response_interpretation import InterpretationResult
+from services.core.claude_client import ClaudeClient
+from services.coverage.coverage_persistence import persist_coverage_result
+from services.assessment.evidence_detection import _significant_words
+from services.explanation.explanation_engine import ExplanationEngine, ExplanationResult
+from services.coverage.gap_governance import GapGovernanceState
+from services.graph.graph_storage import load_graph_version
+from services.graph.graph_update import GraphUpdateResult, close_gap
+from services.agents.kai_pipeline import KAIPipelineResult, run_kai_pipeline
+from services.agents.kase import ReadinessRollup, score_and_persist_readiness
+from services.agents.kra import compose_assessment_package_for_package, persist_assessment_package
+from services.agents.kva import KVAResult, run_kva
+from services.assessment.response_interpretation import InterpretationResult
 
 # Once Phase 13's D1-D3/D8 datasets exist, the golden E2E test should
 # assert exact equality against them within this tolerance (kept here,

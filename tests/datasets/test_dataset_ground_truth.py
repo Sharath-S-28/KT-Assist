@@ -28,7 +28,7 @@ which now shares 5 of 6 required types with Dashboard.
 
 import pytest
 
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 from services.datasets.dataset_loader import list_datasets, load_dataset
 from services.datasets.dataset_validator import DatasetValidator
 

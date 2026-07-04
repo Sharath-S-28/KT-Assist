@@ -8,7 +8,7 @@ is decided deterministically in Python.
 import config
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import KnowledgeObject
-from services.kva import KNOWLEDGE_SUFFICIENT, ROUTE_TO_KGE, run_kva, to_contract
+from services.agents.kva import KNOWLEDGE_SUFFICIENT, ROUTE_TO_KGE, run_kva, to_contract
 
 
 def _obj(id_, object_type, description=""):

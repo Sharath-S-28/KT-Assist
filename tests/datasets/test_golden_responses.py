@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from models.ground_truth_models import GoldenResponse
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 from services.datasets.dataset_validator import DatasetValidator
 
 GOLDEN_PATH = Path(__file__).resolve().parent.parent.parent / "datasets" / "golden" / "golden_responses.json"
@@ -31,7 +31,7 @@ def sufficient_package(db_session, sample_program, sample_package):
     package already cleared the Sufficiency Gate (D1-D3's job), so this
     fixture just needs *a* package + at least one graph version to hang
     an AssessmentPackage/CoverageResult off of."""
-    from services.claude_client import ClaudeClient
+    from services.core.claude_client import ClaudeClient
     from services.datasets.dataset_validator import DatasetValidator
 
     client = ClaudeClient(dev_mode=True, cache_enabled=False)

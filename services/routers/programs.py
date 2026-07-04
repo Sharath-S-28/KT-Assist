@@ -14,9 +14,9 @@ from schemas.workflow import (
     TransitionRequest,
     WorkflowTransitionLogRead,
 )
-from services.completion_status import build_completion_status_report
-from services.repository import Repository
-from services.workflow_engine import WorkflowEngine
+from services.readiness.completion_status import build_completion_status_report
+from services.core.repository import Repository
+from services.core.workflow_engine import WorkflowEngine
 
 router = APIRouter(prefix="/api/programs", tags=["programs"])
 

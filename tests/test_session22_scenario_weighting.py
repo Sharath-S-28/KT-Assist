@@ -25,8 +25,8 @@ import pytest
 import config
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import KnowledgeObject, Relationship
-from services.scenario_generation import generate_scenarios_for_graph
-from services.scenario_weighting import (
+from services.assessment.scenario_generation import generate_scenarios_for_graph
+from services.assessment.scenario_weighting import (
     EvidenceMarker,
     WeightedScenario,
     _largest_remainder_allocate,
@@ -182,7 +182,7 @@ def test_pad_competency_mapping_does_not_duplicate_existing_competencies(sample_
 
 
 def test_pad_competency_mapping_truncates_to_maximum():
-    from services.scenario_generation import GeneratedScenario
+    from services.assessment.scenario_generation import GeneratedScenario
 
     oversized = GeneratedScenario(
         source_kind="object",

@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from database import get_db
 from models import GapRecord, KnowledgePackage, KTProgram
 from schemas.knowledge_graph import KnowledgeObject, Relationship
-from services.graph_storage import save_graph_version
+from services.graph.graph_storage import save_graph_version
 
 
 @pytest.fixture()

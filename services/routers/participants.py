@@ -14,7 +14,7 @@ from schemas.participant import (
     ReceiverRoleAssignmentCreate,
     ReceiverRoleAssignmentRead,
 )
-from services.repository import Repository
+from services.core.repository import Repository
 
 router = APIRouter(prefix="/api/participants", tags=["participants"])
 

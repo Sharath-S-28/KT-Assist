@@ -91,9 +91,9 @@ def cmd_demo() -> None:
     the walkthrough from any other packages that may exist."""
     from database import init_db, session_scope
     from models import KnowledgePackage, KTProgram, Participant
-    from services.claude_client import ClaudeClient
+    from services.core.claude_client import ClaudeClient
     from services.demo.demo_runner import DemoRunner
-    from services.response_interpretation import InterpretationResult, InterpretedObjectChange
+    from services.assessment.response_interpretation import InterpretationResult, InterpretedObjectChange
 
     init_db()
 

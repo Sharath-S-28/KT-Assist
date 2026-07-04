@@ -63,9 +63,9 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 from services.orchestration.workflow_runner import WorkflowRunner
-from services.workflow_engine import WorkflowEngine
+from services.core.workflow_engine import WorkflowEngine
 from utils.errors import GateNotSatisfiedError, InvalidTransitionError
 
 
@@ -211,7 +211,7 @@ class DemoRunner:
         # satisfied" (this phase's own success criterion) no matter how
         # cleanly it runs.
         from models.coverage import GapRecord
-        from services.gap_detection import to_gap_record_kwargs
+        from services.coverage.gap_detection import to_gap_record_kwargs
 
         persisted_gaps = [GapRecord(**to_gap_record_kwargs(gap, package_id)) for gap in kva_result.gaps]
         if persisted_gaps:
@@ -383,7 +383,7 @@ class DemoRunner:
         # just as faithfully as run_full_demo, since both drive the same
         # real pipeline for the same runbook.
         from models.coverage import GapRecord
-        from services.gap_detection import to_gap_record_kwargs
+        from services.coverage.gap_detection import to_gap_record_kwargs
 
         persisted_gaps = [GapRecord(**to_gap_record_kwargs(gap, package_id)) for gap in kva_result.gaps]
         if persisted_gaps:

@@ -25,9 +25,9 @@ from unittest.mock import patch
 
 import config
 from schemas.knowledge_graph import KnowledgeObject
-from services.claude_client import ClaudeClient
-from services.kai_relationship_discovery import _batch_objects, run_boundary_checks
-from services.scenario_cache import get_or_build_scenario_package
+from services.core.claude_client import ClaudeClient
+from services.agents.kai_relationship_discovery import _batch_objects, run_boundary_checks
+from services.assessment.scenario_cache import get_or_build_scenario_package
 
 
 # ---------------------------------------------------------------------------
@@ -57,8 +57,8 @@ def test_dev_mode_rephrase_question_never_touches_the_sdk():
 
 
 def test_dev_mode_judge_scenario_quality_never_touches_the_sdk():
-    from services.scenario_generation import GeneratedScenario
-    from services.scenario_weighting import WeightedScenario
+    from services.assessment.scenario_generation import GeneratedScenario
+    from services.assessment.scenario_weighting import WeightedScenario
 
     scenario = GeneratedScenario(
         source_kind="object", source_id="b1", type_label="Business Rule",

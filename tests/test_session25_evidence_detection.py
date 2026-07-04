@@ -7,7 +7,7 @@ model with Python arbitration, and ambiguity is resolved conservatively.
 import pytest
 
 import config
-from services.evidence_detection import (
+from services.assessment.evidence_detection import (
     EvidenceDetectionResult,
     detect_evidence_for_response,
     detect_evidence_marker,
@@ -140,7 +140,7 @@ def test_detect_evidence_marker_rejects_unrecognized_pass_1_status():
 )
 def test_arbitration_never_rounds_up(pass_1, pass_2, expected, monkeypatch):
     monkeypatch.setattr(
-        "services.evidence_detection._keyword_overlap_status",
+        "services.assessment.evidence_detection._keyword_overlap_status",
         lambda response_text, marker_text: pass_2,
     )
     result = detect_evidence_marker(

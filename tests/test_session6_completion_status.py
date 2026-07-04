@@ -15,7 +15,7 @@ from models import (
     ReceiverReadiness,
     RetryAttempt,
 )
-from services.completion_status import (
+from services.readiness.completion_status import (
     build_completion_status_report,
     derive_package_completion_status,
     derive_program_completion_status,
@@ -223,7 +223,7 @@ def test_completion_status_report_breaks_down_program_package_and_receiver_level
 
 
 def test_workflow_transition_updates_completion_status(db_session, sample_program, sample_package):
-    from services.workflow_engine import WorkflowEngine
+    from services.core.workflow_engine import WorkflowEngine
 
     engine = WorkflowEngine(db_session)
     assert sample_program.completion_status == "Not Started"

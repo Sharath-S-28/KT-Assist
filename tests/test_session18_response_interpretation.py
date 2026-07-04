@@ -6,8 +6,8 @@ structured object/relationship changes.
 
 import pytest
 
-from services.gap_detection import GapCandidate
-from services.response_interpretation import (
+from services.coverage.gap_detection import GapCandidate
+from services.assessment.response_interpretation import (
     InterpretedObjectChange,
     InterpretedRelationshipChange,
     InterpretationResult,
