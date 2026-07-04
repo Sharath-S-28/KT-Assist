@@ -34,6 +34,26 @@ place, so the next phase has one file to extend instead of four:
      PillarResult, and OISResult rows, and the final
      ReceiverReadiness.final_decision is derived FROM the OISResult,
      never the reverse.
+  5. Phase 9's number-guard: the narrative layer
+     (services/explanation/explanation_narrative_layer.py) discards any
+     Claude narrative containing a number not traceable to
+     ExplanationData/template, falling back to deterministic template
+     text -- re-exercised independently of test_session29's fixtures
+     with a minimal ExplanationData built in this file.
+  6. Phase 10's aggregate-don't-re-score guard: the three dashboard
+     services (services/reporting/*_dashboard_service.py) never
+     reference the scoring-formula-only config constants
+     (OIS_WEIGHTS, CRITICALITY_WEIGHTS, EVIDENCE_SCORES,
+     OBJECT_VALIDATION_SCORES) -- a grep-based re-implementation of
+     tests/test_dashboards.py's check, independent by design.
+
+This collapses the Phase 9 (number-guard), Phase 10 (aggregate-don't-
+re-score) and Phase 11 (HTTP-only import) guards into this one CI gate,
+per the Phase 12 unified-invariants-suite goal (see knowledge/issue_log.md
+A2). Each guard keeps its original test file too (belt-and-suspenders,
+and those files carry the fuller worked-example context) -- this file is
+the single place a reviewer or CI job checks for "is the architecture
+still intact," independent of which session/phase test files exist.
 """
 
 import ast
@@ -259,3 +279,134 @@ def test_readiness_flow_persists_in_appendix_d_order(db_session, sample_program)
     assert readiness.ois_result_id == ois_row.id
     assert readiness.final_decision == ois_row.decision
     assert readiness.certification_level == ois_row.certification_level
+
+
+# ---------------------------------------------------------------------------
+# 5. Phase 9 number-guard: narrative layer never originates an untraceable
+#    number, independent of test_session29's fixtures.
+# ---------------------------------------------------------------------------
+
+
+def _minimal_explanation_data():
+    from schemas.explanation import CompetencyFact, EvidenceFact, ExplanationData, GateFact, PillarFact
+
+    competency = CompetencyFact(
+        competency_id="exception_handling",
+        name="exception_handling",
+        score=62.0,
+        weight=0.5,
+        is_critical=True,
+        critical_threshold=70.0,
+        passed_gate=False,
+        evidence=[
+            EvidenceFact(marker_id="EH-03", state="Missing", score=0.0, scenario_id="s1", knowledge_object_ids=[]),
+        ],
+    )
+    pillar = PillarFact(
+        pillar_id="OE", name="Operational Execution", score=62.0, weight=0.4, competencies=[competency]
+    )
+    return ExplanationData(
+        receiver_readiness_id="inv-r1",
+        package_id="inv-p1",
+        receiver_id="inv-part1",
+        receiver_role="Primary",
+        coverage=0.9,
+        ois=62.0,
+        ois_recomputed=62.0,
+        readiness_decision="Not Ready",
+        certification=None,
+        pillars=[pillar],
+        gates=[
+            GateFact(gate_id="critical_competency", passed=False, observed=62.0, threshold=70.0, failing_items=["exception_handling"]),
+        ],
+        primary_failure_reasons=["critical_competency:exception_handling"],
+    )
+
+
+class _InvariantStubClaudeClient:
+    """Duck-typed ClaudeClient.complete stand-in, independent of
+    test_session29's _StubClaudeClient, to keep this file's fixtures
+    self-contained."""
+
+    def __init__(self, narrative_text: str):
+        self.narrative_text = narrative_text
+
+    def complete(self, **kwargs):
+        return {"narrative": self.narrative_text}
+
+
+def test_narrative_number_guard_rejects_untraceable_number_and_falls_back():
+    from services.explanation.explanation_narrative_layer import ExplanationNarrativeLayer
+    from services.explanation.explanation_template_layer import ExplanationTemplateLayer
+
+    data = _minimal_explanation_data()
+    template = ExplanationTemplateLayer().render(data)
+
+    bad_client = _InvariantStubClaudeClient("This receiver scored an impressive 999 overall.")
+    layer = ExplanationNarrativeLayer(bad_client)
+    result = layer.generate(data, template)
+
+    assert result.used_claude is False
+    assert result.fell_back is True
+    assert result.text == layer._fallback_text(template)
+
+
+def test_narrative_number_guard_accepts_traceable_numbers():
+    from services.explanation.explanation_narrative_layer import ExplanationNarrativeLayer
+    from services.explanation.explanation_template_layer import ExplanationTemplateLayer
+
+    data = _minimal_explanation_data()
+    template = ExplanationTemplateLayer().render(data)
+
+    good_client = _InvariantStubClaudeClient(
+        "exception_handling scored 62, short of the 70 threshold required for this critical competency."
+    )
+    layer = ExplanationNarrativeLayer(good_client)
+    result = layer.generate(data, template)
+
+    assert result.used_claude is True
+    assert result.fell_back is False
+
+
+# ---------------------------------------------------------------------------
+# 6. Phase 10 aggregate-don't-re-score guard: dashboards never reference
+#    scoring-formula-only config constants. Independent re-implementation
+#    of tests/test_dashboards.py's grep-based check.
+# ---------------------------------------------------------------------------
+
+_DASHBOARD_SERVICE_FILES = [
+    REPO_ROOT / "services" / "reporting" / "executive_dashboard_service.py",
+    REPO_ROOT / "services" / "reporting" / "readiness_dashboard_service.py",
+    REPO_ROOT / "services" / "reporting" / "coverage_dashboard_service.py",
+]
+
+_FORBIDDEN_SCORING_CONSTANTS = [
+    "OIS_WEIGHTS",
+    "CRITICALITY_WEIGHTS",
+    "EVIDENCE_SCORES",
+    "OBJECT_VALIDATION_SCORES",
+]
+
+
+def test_dashboard_services_never_reconstruct_scoring_formulas():
+    import re as _re
+
+    violations: dict[str, list[str]] = {}
+    for path in _DASHBOARD_SERVICE_FILES:
+        assert path.exists(), f"expected dashboard service file to exist: {path}"
+        # Strip triple-quoted docstrings first: this module's own prose
+        # names the forbidden constants to document the rule, which must
+        # not itself trip the check (same approach test_dashboards.py uses).
+        code_only = _re.sub(r'"""[\s\S]*?"""', "", path.read_text())
+        hits = [
+            constant
+            for constant in _FORBIDDEN_SCORING_CONSTANTS
+            if _re.search(rf"\bconfig\.{constant}\b", code_only)
+        ]
+        if hits:
+            violations[str(path.relative_to(REPO_ROOT))] = hits
+
+    assert violations == {}, (
+        "dashboards must aggregate (mean/count) already-persisted scores, "
+        f"never reconstruct a scoring formula. Found: {violations}"
+    )
