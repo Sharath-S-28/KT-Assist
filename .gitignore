@@ -9,6 +9,13 @@ data/graphs/
 data/graphs_smoketest/
 data/tmp_cache_dbg/
 data/.fuse_hidden*
+data/*.db.bak
+
+# Vendored JS that pyvis uses from CDN at runtime — not needed in repo.
+# lib/bindings/utils.js IS needed (local path reference in generated HTML).
+lib/vis-9.1.2/
+lib/tom-select/
+
 .venv/
 venv/
 .pytest_cache/

@@ -1,5 +1,5 @@
 """
-data/seed_data.py — First-run demonstration seed data.
+scripts/seed_data.py — First-run demonstration seed data.
 
 Seeds a single KT Program with two Knowledge Packages, a handful of
 Participants across roles, and a Primary receiver role assignment.
