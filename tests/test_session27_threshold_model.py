@@ -16,8 +16,8 @@ config.OIS_BOUNDARY_ZONE_WIDTH=3 points below each:
 import pytest
 
 import config
-from services.role_threshold import resolve_effective_ois_threshold
-from services.threshold_model import (
+from services.readiness.role_threshold import resolve_effective_ois_threshold
+from services.readiness.threshold_model import (
     ThresholdResolution,
     assign_certification_level,
     resolve_readiness,

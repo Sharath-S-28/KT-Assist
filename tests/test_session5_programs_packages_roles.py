@@ -10,7 +10,7 @@ import pytest
 import config
 from models import KnowledgePackage, Participant, ReceiverRoleAssignment
 from schemas.participant import ReceiverRoleAssignmentRead
-from services.role_threshold import resolve_effective_ois_threshold
+from services.readiness.role_threshold import resolve_effective_ois_threshold
 from utils.errors import ValidationFailedError
 
 

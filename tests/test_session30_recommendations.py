@@ -20,11 +20,11 @@ from database import get_db
 from models import AssessmentPackage, Participant, Scenario as ScenarioRow, ScenarioResponse
 from models.coverage import CoverageResult
 from schemas.explanation import RecommendationItem
-from services.explanation_data_layer import ExplanationDataLayer
-from services.graph_storage import save_graph_version
-from services.kase import score_and_persist_readiness
-from services.knowledge_model import validate_object
-from services.recommendation_service import RecommendationService
+from services.explanation.explanation_data_layer import ExplanationDataLayer
+from services.graph.graph_storage import save_graph_version
+from services.agents.kase import score_and_persist_readiness
+from services.graph.knowledge_model import validate_object
+from services.explanation.recommendation_service import RecommendationService
 
 _MARKER_TEXT = "alpha bravo charlie delta echo"
 _RESPONSE_FOR = {
@@ -134,7 +134,7 @@ def test_recommends_only_failing_critical_competencies(db_session, not_ready_rea
     assert rec.score == 0.0
     assert rec.critical_threshold == config.CRITICAL_COMPETENCY_GATE_THRESHOLD
     # "exception_handling" is a REMEDIATION_TABLE key -- its specific actions apply.
-    from frameworks.explanation_framework import REMEDIATION_TABLE
+    from services.explanation.explanation_framework import REMEDIATION_TABLE
 
     assert rec.actions == REMEDIATION_TABLE["exception_handling"]
 

@@ -9,14 +9,14 @@ import pytest
 
 import config
 from schemas.agent_contracts import AgentRequest
-from services.claude_client import ClaudeClient
-from services.kai_relationship_discovery import (
+from services.core.claude_client import ClaudeClient
+from services.agents.kai_relationship_discovery import (
     KAIRelationshipAgent,
     arbitrate_objects,
     discover_relationships,
     run_boundary_checks,
 )
-from services.knowledge_model import validate_object
+from services.graph.knowledge_model import validate_object
 from utils.errors import ValidationFailedError
 
 

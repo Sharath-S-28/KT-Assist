@@ -61,6 +61,7 @@ codebase rather than re-litigated with the user:]
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -68,17 +69,19 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 import config
-from services.claude_client import ClaudeClient
-from services.evidence_detection import _significant_words
-from services.explanation_engine import ExplanationEngine, ExplanationResult
-from services.gap_governance import GapGovernanceState
-from services.graph_storage import load_graph_version
-from services.graph_update import GraphUpdateResult, close_gap
-from services.kai_pipeline import KAIPipelineResult, run_kai_pipeline
-from services.kase import ReadinessRollup, score_and_persist_readiness
-from services.kra import compose_assessment_package_for_package, persist_assessment_package
-from services.kva import KVAResult, run_kva
-from services.response_interpretation import InterpretationResult
+from models.coverage import CoverageResult
+from services.core.claude_client import ClaudeClient
+from services.coverage.coverage_persistence import persist_coverage_result
+from services.assessment.evidence_detection import _significant_words
+from services.explanation.explanation_engine import ExplanationEngine, ExplanationResult
+from services.coverage.gap_governance import GapGovernanceState
+from services.graph.graph_storage import load_graph_version
+from services.graph.graph_update import GraphUpdateResult, close_gap
+from services.agents.kai_pipeline import KAIPipelineResult, run_kai_pipeline
+from services.agents.kase import ReadinessRollup, score_and_persist_readiness
+from services.agents.kra import compose_assessment_package_for_package, persist_assessment_package
+from services.agents.kva import KVAResult, run_kva
+from services.assessment.response_interpretation import InterpretationResult
 
 # Once Phase 13's D1-D3/D8 datasets exist, the golden E2E test should
 # assert exact equality against them within this tolerance (kept here,
@@ -153,6 +156,32 @@ class WorkflowRunner:
     def validate(self, package_id: str, question_mock: Optional[dict] = None) -> KVAResult:
         payload = load_graph_version(self.db, package_id)
         return run_kva(payload, claude_client=self.client, question_mock=question_mock)
+
+    def persist_coverage_result(
+        self, package_id: str, graph_version_id: str, kva_result: KVAResult
+    ) -> CoverageResult:
+        """Thin wrapper around services.coverage_persistence.
+        persist_coverage_result -- matches this class's own established
+        convention (validate() above is an equally thin wrapper around
+        services.kva.run_kva); see that module for the full bug history
+        across both rounds this fix took, and why the canonical
+        definition lives there rather than here.
+
+        [Round 1 -> round 2 correction]: this method originally built
+        the CoverageResult row inline, right here. Round 2 found a
+        second real (non-demo) writer -- services/graph_update.py's
+        close_gap(), the function services/routers/gaps.py's live
+        submit_gap_response endpoint calls directly, with no dependency
+        on WorkflowRunner at all -- that also needed this same logic,
+        and close_gap() cannot import from this module (workflow_runner.py
+        already imports FROM graph_update.py, so the reverse would be
+        circular). The body moved to services/coverage_persistence.py,
+        a small leaf module both call sites can import without a cycle;
+        this method now only forwards to it, the same shape validate()
+        already has."""
+        return persist_coverage_result(
+            self.db, package_id, graph_version_id, kva_result
+        )
 
     # -- Stage 3: Gap Closure Loop ---------------------------------------
 

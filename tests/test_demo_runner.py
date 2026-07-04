@@ -23,7 +23,7 @@ reconciliation.
 
 import pytest
 
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 from services.demo.demo_runner import DemoLog, DemoRunner
 from utils.errors import GateNotSatisfiedError
 
@@ -50,7 +50,7 @@ RELATIONSHIP_MOCK = {"relationships": []}
 
 
 def _interpretation_for_gap(kva_result):
-    from services.response_interpretation import InterpretationResult, InterpretedObjectChange
+    from services.assessment.response_interpretation import InterpretationResult, InterpretedObjectChange
 
     if not kva_result.gaps:
         return None

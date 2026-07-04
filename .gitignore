@@ -6,8 +6,27 @@ data/*.db-wal
 data/*.db-shm
 data/cache/
 data/graphs/
+data/graphs_smoketest/
+data/tmp_cache_dbg/
+data/.fuse_hidden*
+data/*.db.bak
+
+# Vendored JS that pyvis uses from CDN at runtime — not needed in repo.
+# lib/bindings/utils.js IS needed (local path reference in generated HTML).
+lib/vis-9.1.2/
+lib/tom-select/
+
 .venv/
 venv/
 .pytest_cache/
 *.egg-info/
 .DS_Store
+
+# Runtime-uploaded knowledge package assets (services/asset_ingestion.py
+# writes to assets/<package_id>/<asset_id>_<filename> -- config.ASSETS_DIR).
+# Test runs and local dev sessions populate these as a side effect of
+# ingesting packages; they are never meant to be version-controlled.
+# This pattern only matches subdirectories of assets/, so the brand
+# logo files committed directly in assets/ (kt_logo.png, kt_logo.svg,
+# kt_logo_icon.png, kt_logo_cube.png) are unaffected.
+assets/*/

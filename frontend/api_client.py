@@ -41,6 +41,12 @@ import httpx
 from pydantic import BaseModel, Field
 
 from schemas.asset import AssetRead
+from schemas.assessment import (
+    AssessmentPackageResult,
+    ReadinessScoreResult,
+    ScenarioRead,
+    ScenarioResponseRead,
+)
 from schemas.assurance_report import AssuranceReport
 from schemas.dashboard import CoverageDashboard, ExecutiveDashboard, ReadinessDashboard
 from schemas.explanation import ExplanationResponse, RecommendationItem
@@ -48,6 +54,7 @@ from schemas.gap import GapRead, GapResolutionResult
 from schemas.graph import GraphPayload, NodeDetail
 from schemas.participant import ParticipantRead, ReceiverRoleAssignmentRead
 from schemas.program import KnowledgePackageRead, KTProgramRead
+from schemas.upload import UploadResult
 from schemas.workflow import CompletionStatusReportRead, WorkflowTransitionLogRead
 
 DEFAULT_BASE_URL = os.environ.get("KT_ASSIST_API_BASE_URL", "http://127.0.0.1:8000")
@@ -79,6 +86,20 @@ class ApiError(RuntimeError):
         self.error_code = error_code
         self.message = message
         self.details = details or {}
+
+
+def _mime_for(filename: str) -> str:
+    """Return the MIME type for a file upload based on extension.
+    Covers the four types services/asset_ingestion.py's SUPPORTED_FILE_TYPES
+    already accepts -- anything else will get a 422 from the router's
+    _infer_file_type call, not from us."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    return {
+        "pdf": "application/pdf",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "txt": "text/plain",
+    }.get(ext, "application/octet-stream")
 
 
 def _raise_for_status(response: httpx.Response) -> None:
@@ -295,6 +316,69 @@ class ApiClient:
     def get_recommendations(self, receiver_readiness_id: str) -> list[RecommendationItem]:
         body = self._get(f"/api/explanations/{receiver_readiness_id}/recommendations").json()
         return [RecommendationItem.model_validate(row) for row in body]
+
+    def _post_multipart(self, path: str, files: dict) -> httpx.Response:
+        """POST with multipart/form-data for file uploads. Separate from
+        _post() because httpx uses a different call signature for files
+        vs JSON, and mixing them into one helper complicates test doubles
+        that hand in a TestClient (which also accepts files= directly)."""
+        response = self._client.post(path, files=files)
+        _raise_for_status(response)
+        return response
+
+    # -- assets / upload (services/routers/assets.py) ----------------------
+
+    def list_assets(self, package_id: str) -> list[AssetRead]:
+        body = self._get(f"/api/packages/{package_id}/assets").json()
+        return [AssetRead.model_validate(row) for row in body]
+
+    def upload_asset(self, package_id: str, filename: str, content: bytes) -> UploadResult:
+        """Upload a transcript/document file and run the full ingestion
+        + coverage-validation pipeline. Returns extraction summary plus
+        live coverage score and package type so the UI can show
+        immediate feedback without a second round-trip."""
+        files = {"file": (filename, content, _mime_for(filename))}
+        return UploadResult.model_validate(
+            self._post_multipart(f"/api/packages/{package_id}/upload", files=files).json()
+        )
+
+    # -- assessment (services/routers/assessment.py) -----------------------
+
+    def generate_assessment(self, package_id: str) -> AssessmentPackageResult:
+        """Trigger scenario generation for this package's latest graph
+        version. Idempotent -- returns the cached package if one already
+        exists and the graph hasn't changed."""
+        return AssessmentPackageResult.model_validate(
+            self._post(f"/api/packages/{package_id}/generate-assessment").json()
+        )
+
+    def list_scenarios(self, package_id: str) -> list[ScenarioRead]:
+        """Return the latest assessment package's scenario list for this
+        package -- the read side a receiver UI renders before the
+        participant can start answering."""
+        body = self._get(f"/api/packages/{package_id}/scenarios").json()
+        return [ScenarioRead.model_validate(row) for row in body]
+
+    def submit_scenario_response(
+        self, scenario_id: str, participant_id: str, response_text: str
+    ) -> ScenarioResponseRead:
+        """Capture one receiver's free-text answer to one scenario.
+        Evidence detection runs later, at score_readiness time."""
+        payload = {"participant_id": participant_id, "response_text": response_text}
+        return ScenarioResponseRead.model_validate(
+            self._post(f"/api/packages/scenarios/{scenario_id}/responses", json=payload).json()
+        )
+
+    def score_readiness(
+        self, package_id: str, participant_id: str, role_tier: str
+    ) -> ReadinessScoreResult:
+        """Run the full evidence-detection -> OIS -> threshold-resolution
+        chain for one participant against every response they have already
+        submitted for this package."""
+        payload = {"participant_id": participant_id, "role_tier": role_tier}
+        return ReadinessScoreResult.model_validate(
+            self._post(f"/api/packages/{package_id}/score-readiness", json=payload).json()
+        )
 
     # -- assurance report (services/routers/assurance_report.py) ------------
 

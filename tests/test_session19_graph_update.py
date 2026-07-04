@@ -29,10 +29,10 @@ Step 2 -- also close the Task gap (update Task's description):
 
 import pytest
 
-from services.gap_detection import GapCandidate
-from services.graph_storage import list_graph_versions, save_graph_version
-from services.graph_update import GraphUpdateResult, close_gap
-from services.response_interpretation import (
+from services.coverage.gap_detection import GapCandidate
+from services.graph.graph_storage import list_graph_versions, save_graph_version
+from services.graph.graph_update import GraphUpdateResult, close_gap
+from services.assessment.response_interpretation import (
     InterpretedObjectChange,
     InterpretedRelationshipChange,
     InterpretationResult,
@@ -195,7 +195,7 @@ def test_existing_relationships_are_preserved_and_new_ones_are_appended(db_sessi
 
     result = close_gap(db_session, sample_package.id, interpretation)
 
-    from services.graph_storage import load_graph_version
+    from services.graph.graph_storage import load_graph_version
     new_payload = load_graph_version(db_session, sample_package.id)
 
     assert new_payload.version == 2

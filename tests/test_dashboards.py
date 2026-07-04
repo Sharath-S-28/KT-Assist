@@ -27,15 +27,15 @@ from models import (
     PillarResult,
     ReceiverReadiness,
 )
-from services.coverage_dashboard_service import CoverageDashboardService
-from services.executive_dashboard_service import ExecutiveDashboardService
-from services.readiness_dashboard_service import ReadinessDashboardService
+from services.reporting.coverage_dashboard_service import CoverageDashboardService
+from services.reporting.executive_dashboard_service import ExecutiveDashboardService
+from services.reporting.readiness_dashboard_service import ReadinessDashboardService
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DASHBOARD_SERVICE_FILES = [
-    _REPO_ROOT / "services" / "executive_dashboard_service.py",
-    _REPO_ROOT / "services" / "readiness_dashboard_service.py",
-    _REPO_ROOT / "services" / "coverage_dashboard_service.py",
+    _REPO_ROOT / "services" / "reporting" / "executive_dashboard_service.py",
+    _REPO_ROOT / "services" / "reporting" / "readiness_dashboard_service.py",
+    _REPO_ROOT / "services" / "reporting" / "coverage_dashboard_service.py",
 ]
 _FORBIDDEN_SCORING_CONSTANTS = [
     "OIS_WEIGHTS",

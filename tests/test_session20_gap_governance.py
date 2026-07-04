@@ -7,7 +7,7 @@ retry timing and lockout behave as specified. Closes Phase 6.
 import pytest
 
 import config
-from services.gap_governance import (
+from services.coverage.gap_governance import (
     GapGovernanceState,
     apply_waiver,
     cooling_off_hours_before_attempt,

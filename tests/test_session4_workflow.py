@@ -14,7 +14,7 @@ from models import (
     ReceiverReadiness,
     WorkflowTransitionLog,
 )
-from services.workflow_engine import WorkflowEngine
+from services.core.workflow_engine import WorkflowEngine
 from utils.errors import GateNotSatisfiedError, InvalidTransitionError
 
 

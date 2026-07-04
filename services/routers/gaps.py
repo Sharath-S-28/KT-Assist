@@ -39,10 +39,10 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import GapRecord, GapResponse
 from schemas.gap import GapRead, GapResolutionResult, GapResponseCreate
-from services.gap_detection import GapCandidate
-from services.graph_update import close_gap
-from services.repository import Repository
-from services.response_interpretation import capture_gap_response, interpret_gap_response
+from services.coverage.gap_detection import GapCandidate
+from services.graph.graph_update import close_gap
+from services.core.repository import Repository
+from services.assessment.response_interpretation import capture_gap_response, interpret_gap_response
 
 router = APIRouter(prefix="/api/packages", tags=["gaps"])
 

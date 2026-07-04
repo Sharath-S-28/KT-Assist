@@ -35,10 +35,10 @@ import pytest
 import config
 from models import CompetencyResult, EvidenceMarkerResult, OISResult, PillarResult, Scenario as ScenarioRow, ScenarioResponse, ReceiverReadiness
 from models.coverage import CoverageResult
-from services.gap_governance import GapGovernanceState
-from services.graph_storage import save_graph_version
-from services.kase import ReadinessRollup, _evidence_markers_for_scenario, score_and_persist_readiness
-from services.knowledge_model import validate_object
+from services.coverage.gap_governance import GapGovernanceState
+from services.graph.graph_storage import save_graph_version
+from services.agents.kase import ReadinessRollup, _evidence_markers_for_scenario, score_and_persist_readiness
+from services.graph.knowledge_model import validate_object
 
 _MARKER_TEXT = "alpha bravo charlie delta echo"
 _DEMONSTRATED_RESPONSE = "alpha bravo charlie report filed"  # 3/5 -> ratio 0.6

@@ -11,7 +11,7 @@ Usage:
 
 `demo` is the operational runbook for a live stakeholder walkthrough:
 it creates its own dedicated single-package demo program (see cmd_demo's
-docstring for why it does not reuse data/seed_data.py's program), then
+docstring for why it does not reuse scripts/seed_data.py's program), then
 drives DemoRunner.run_full_demo using the same worked example
 (Process/Task/Business-Rule/Risk/System, two gap closures,
 8.5/13 -> 11.5/13 -> 13/13) already hand-verified by
@@ -51,7 +51,7 @@ def cmd_init() -> None:
 
 def cmd_seed() -> None:
     from database import init_db
-    from data.seed_data import seed
+    from scripts.seed_data import seed
 
     init_db()
     seed()
@@ -61,7 +61,7 @@ def cmd_seed() -> None:
 def cmd_reset() -> None:
     import models  # noqa: F401  (register tables on Base.metadata)
     from database import Base, get_engine, init_db
-    from data.seed_data import seed
+    from scripts.seed_data import seed
 
     engine = get_engine()
     logger.info("Dropping all tables...")
@@ -75,7 +75,7 @@ def cmd_demo() -> None:
     """Session 36 runbook: walk a dedicated, single-package demo program
     through DemoRunner end to end, printing the narration.
 
-    Deliberately does NOT reuse data/seed_data.py's seed program: that
+    Deliberately does NOT reuse scripts/seed_data.py's seed program: that
     program has two KnowledgePackages by design (Phase 5's worked
     example), and services/workflow_engine.py's guards evaluate every
     lifecycle edge across ALL of a program's packages (e.g.
@@ -91,9 +91,9 @@ def cmd_demo() -> None:
     the walkthrough from any other packages that may exist."""
     from database import init_db, session_scope
     from models import KnowledgePackage, KTProgram, Participant
-    from services.claude_client import ClaudeClient
+    from services.core.claude_client import ClaudeClient
     from services.demo.demo_runner import DemoRunner
-    from services.response_interpretation import InterpretationResult, InterpretedObjectChange
+    from services.assessment.response_interpretation import InterpretationResult, InterpretedObjectChange
 
     init_db()
 

@@ -18,7 +18,7 @@ exactly (same 7-node graph, same Task-then-Control gap closure order).
 """
 
 from services.checks.definition_of_done import ITEMS, DefinitionOfDone
-from services.claude_client import ClaudeClient
+from services.core.claude_client import ClaudeClient
 from services.orchestration.workflow_runner import WorkflowRunner
 
 EXTRACTION_MOCK = {
@@ -44,7 +44,7 @@ RELATIONSHIP_MOCK = {"relationships": []}
 
 
 def _interpretation_for_gap(kva_result):
-    from services.response_interpretation import InterpretationResult, InterpretedObjectChange
+    from services.assessment.response_interpretation import InterpretationResult, InterpretedObjectChange
 
     if not kva_result.gaps:
         return None
@@ -116,7 +116,7 @@ def test_verify_reports_all_nine_items_met_after_a_full_successful_run(db_sessio
     expect WorkflowRunner to do it implicitly."""
     from models import Participant
     from models.coverage import CoverageResult, GapRecord
-    from services.gap_detection import to_gap_record_kwargs
+    from services.coverage.gap_detection import to_gap_record_kwargs
 
     client = ClaudeClient(dev_mode=True, cache_enabled=False)
     runner = WorkflowRunner(db_session, claude_client=client)

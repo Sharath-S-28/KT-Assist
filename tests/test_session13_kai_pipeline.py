@@ -8,9 +8,9 @@ This is the end-to-end KAI integration test closing Phase 4.
 import pytest
 
 import config
-from services.claude_client import ClaudeClient
-from services.kai_pipeline import run_kai_pipeline
-from services.graph_storage import load_graph_version
+from services.core.claude_client import ClaudeClient
+from services.agents.kai_pipeline import run_kai_pipeline
+from services.graph.graph_storage import load_graph_version
 
 
 @pytest.fixture(autouse=True)

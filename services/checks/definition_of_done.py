@@ -69,7 +69,7 @@ from models import (
     ReceiverReadiness,
     ScenarioResponse,
 )
-from services.executive_dashboard_service import ExecutiveDashboardService
+from services.reporting.executive_dashboard_service import ExecutiveDashboardService
 
 # The [FROZEN] nine items, in the spec's exact order. DefinitionOfDone.verify()
 # always returns a dict with exactly these nine keys, never more/fewer.

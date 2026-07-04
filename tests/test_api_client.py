@@ -14,7 +14,7 @@ from database import get_db
 from frontend.api_client import ApiClient, ApiError
 from models import GapRecord, KnowledgeAsset, KnowledgePackage, KTProgram, Participant
 from schemas.knowledge_graph import KnowledgeObject, Relationship
-from services.graph_storage import save_graph_version
+from services.graph.graph_storage import save_graph_version
 
 
 @pytest.fixture()

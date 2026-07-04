@@ -7,15 +7,15 @@ Complexity Signal Score can be computed from graph topology alone.
 import pytest
 
 from schemas.graph import GraphPayload
-from services.complexity_signal import (
+from services.core.complexity_signal import (
     CRITICAL_THRESHOLD,
     IMPORTANT_THRESHOLD,
     compute_all_process_scores,
     compute_complexity_signal_score,
 )
-from services.graph_engine import build_networkx_graph
-from services.graph_viewer import get_node_detail, render_graph_html
-from services.knowledge_model import validate_object, validate_relationship
+from services.graph.graph_engine import build_networkx_graph
+from services.graph.graph_viewer import get_node_detail, render_graph_html
+from services.graph.knowledge_model import validate_object, validate_relationship
 from utils.errors import NotFoundError
 
 

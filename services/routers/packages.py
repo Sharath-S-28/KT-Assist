@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import KnowledgePackage
 from schemas.program import KnowledgePackageCreate, KnowledgePackageRead
-from services.repository import Repository
+from services.core.repository import Repository
 
 router = APIRouter(prefix="/api/packages", tags=["packages"])
 

@@ -9,15 +9,15 @@ import pytest
 import config
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import KnowledgeObject, Relationship
-from services.scenario_cache import (
+from services.assessment.scenario_cache import (
     cache_key,
     get_or_build_scenario_package,
     invalidate_scenario_package_cache,
     load_scenario_package_cache,
     save_scenario_package_cache,
 )
-from services.scenario_generation import GeneratedScenario, generate_scenarios_for_graph
-from services.scenario_validation import (
+from services.assessment.scenario_generation import GeneratedScenario, generate_scenarios_for_graph
+from services.assessment.scenario_validation import (
     LayerResult,
     ScenarioValidationResult,
     is_recall_only,
@@ -28,7 +28,7 @@ from services.scenario_validation import (
     validate_scenario,
     validate_scenario_set,
 )
-from services.scenario_weighting import WeightedScenario, build_weighted_scenario_set, pad_competency_mapping
+from services.assessment.scenario_weighting import WeightedScenario, build_weighted_scenario_set, pad_competency_mapping
 
 
 def _full_sample_graph() -> GraphPayload:

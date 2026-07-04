@@ -25,11 +25,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database import get_db
-from services.claude_client import ClaudeClient
-from services.explanation_data_layer import ExplanationDataLayer
-from services.explanation_engine import ExplanationEngine
-from services.recommendation_service import RecommendationService
-from services.traceability_service import TraceabilityService, TraceNode
+from services.core.claude_client import ClaudeClient
+from services.explanation.explanation_data_layer import ExplanationDataLayer
+from services.explanation.explanation_engine import ExplanationEngine
+from services.explanation.recommendation_service import RecommendationService
+from services.explanation.traceability_service import TraceabilityService, TraceNode
 from schemas.explanation import ExplanationResponse, RecommendationItem
 from utils.errors import NotFoundError
 

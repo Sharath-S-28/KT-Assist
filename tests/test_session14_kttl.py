@@ -7,7 +7,7 @@ profile without manual template selection.
 import config
 from schemas.graph import GraphPayload
 from schemas.knowledge_graph import KnowledgeObject
-from services.kttl import (
+from services.agents.kttl import (
     BLEND_MIN_SCORE,
     BLEND_SCORE_GAP,
     detect_package_template,
@@ -139,7 +139,7 @@ def test_detection_requires_no_manual_template_argument():
     # The only input is the graph payload itself -- confirms "without
     # manual template selection" at the API level, not just behaviorally.
     import inspect
-    from services.kttl import detect_package_template as fn
+    from services.agents.kttl import detect_package_template as fn
 
     params = list(inspect.signature(fn).parameters)
     assert params == ["payload"]

@@ -12,7 +12,7 @@ from pptx import Presentation
 from pptx.util import Inches
 from reportlab.pdfgen import canvas
 
-from services.asset_ingestion import (
+from services.core.asset_ingestion import (
     CHUNK_OVERLAP_CHARS,
     CHUNK_SIZE_CHARS,
     chunk_text,
@@ -123,7 +123,7 @@ def test_ingest_persists_metadata_and_storage_path(db_session, sample_package):
 
 
 def test_ingest_marks_failed_status_on_extraction_error(db_session, sample_package, monkeypatch):
-    import services.asset_ingestion as mod
+    import services.core.asset_ingestion as mod
 
     def _boom(*args, **kwargs):
         raise RuntimeError("simulated extractor crash")

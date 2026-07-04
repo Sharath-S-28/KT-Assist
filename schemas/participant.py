@@ -42,7 +42,7 @@ class ReceiverRoleAssignmentRead(TimestampedSchema):
 
     @model_validator(mode="after")
     def _resolve_effective_threshold(self):
-        from services.role_threshold import resolve_effective_ois_threshold
+        from services.readiness.role_threshold import resolve_effective_ois_threshold
 
         self.effective_ois_threshold = resolve_effective_ois_threshold(self.role_tier)
         return self

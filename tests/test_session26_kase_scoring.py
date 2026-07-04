@@ -41,7 +41,7 @@ which is not what this worked example is testing for.
 import pytest
 
 import config
-from services.kase_scoring import (
+from services.agents.kase_scoring import (
     ScenarioScoreInput,
     aggregate_competency_scores,
     aggregate_pillar_scores,

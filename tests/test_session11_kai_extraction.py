@@ -8,8 +8,8 @@ import pytest
 
 import config
 from schemas.agent_contracts import AgentRequest
-from services.claude_client import ClaudeClient
-from services.kai_extraction import (
+from services.core.claude_client import ClaudeClient
+from services.agents.kai_extraction import (
     KAIAgent,
     build_data_payload,
     build_system_prompt,
