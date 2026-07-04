@@ -1,3 +1,0 @@
-Reconcile the GL.
-
-Post journal entries.

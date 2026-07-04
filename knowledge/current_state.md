@@ -2,7 +2,7 @@
 
 ```yaml
 last_agent: Claude
-status: A1/A2/A7 confirmed complete; A3-A5 confirmed already-shipped; only A6 remains
+status: All logged issues closed (A1-A2, A6-A7 closed 2026-07-04; A3-A5 confirmed already-shipped)
 ```
 
 ## 1. Current Milestone / Active Task
@@ -17,8 +17,7 @@ status: A1/A2/A7 confirmed complete; A3-A5 confirmed already-shipped; only A6 re
 - Rulings A3–A5 resolved 2026-07-04 (see issue_log.md #6–8) — all three were already implemented in shipped code before this session; the issue log was stale. No open rulings remain.
 - Windows compatibility (A7, closed 2026-07-04): `Path.read_text()` must always pass `encoding="utf-8"` explicitly (Windows defaults to CP1252); cache keys must never contain raw `:` in filenames. Watch for the same pattern in any new file-reading code.
 - Circular-import-prone service layer — mitigated by leaf modules (`coverage_persistence.py`); keep persistence out of orchestration/graph services.
-- Committed runtime artifacts in repo: `assets/<uuid>/` test uploads, `data/kt_assist.db.bak`, `data/tmp_cache_dbg`, `data/graphs_smoketest` — bloat/stale-state risk; needs `.gitignore` pass (pending ruling).
-- Refactor leftovers: `tests/zz_debug_test*.py`, `tests/test_demo_runner_copy.py`, empty `agents/`/`storage/` stubs, `models/__init__placeholder__.py`. (Orphaned `config.py`, root `frameworks/`, `prompts/` duplicates removed 2026-07-04.)
+- Repo hygiene resolved 2026-07-04 (A6): ~1,400 pre-existing committed runtime artifacts untracked (`assets/<uuid>/`, `data/*.db.bak`, `data/graphs_smoketest/`, `data/tmp_cache_dbg/`, `data/.fuse_hidden*`); 3 dead test files (`tests/zz_debug_test*.py`, `tests/test_demo_runner_copy.py`) and 3 empty stub files (`agents/__init__.py`, `storage/__init__.py`, `models/__init__placeholder__.py`) removed. No open pain points remain.
 - SQLite WAL = single-writer; fine for single-user internal tool, a constraint for any future multi-user work.
 - No auth layer (by design, internal). Do not assume or add auth.
 - Streamlit rerun/session-state model is fragile — keep state server-side; React migration planned at API boundary only.
