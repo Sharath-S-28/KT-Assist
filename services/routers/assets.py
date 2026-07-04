@@ -36,6 +36,23 @@ from schemas.asset import AssetRead
 from schemas.upload import ExtractedObjectSummary, UploadResult
 from services.orchestration.workflow_runner import WorkflowRunner
 from services.core.repository import Repository
+from services.core.workflow_engine import WorkflowEngine
+from utils.errors import GateNotSatisfiedError, InvalidTransitionError
+
+
+def _try_transition(db: Session, program_id: str, to_state: str, triggered_by: str) -> None:
+    """Attempt a lifecycle transition; swallow guard/illegal-edge errors.
+
+    Upload and assessment endpoints write data first, then advance the
+    lifecycle to match. If the program is already at or past the target
+    state (e.g. second upload, re-run) both error types are expected and
+    harmless — the data write succeeded and the lifecycle is already
+    correct. Any other exception re-raises.
+    """
+    try:
+        WorkflowEngine(db).transition(program_id, to_state, triggered_by=triggered_by)
+    except (GateNotSatisfiedError, InvalidTransitionError):
+        pass  # already at or past this state; data write still committed
 
 router = APIRouter(prefix="/api/packages", tags=["assets"])
 
@@ -85,6 +102,15 @@ async def upload_asset(package_id: str, file: UploadFile, db: Session = Depends(
     coverage_result = runner.persist_coverage_result(
         package_id, ingest_result.graph_version.id, kva_result
     )
+    db.commit()
+
+    # Advance lifecycle: Draft -> Knowledge Capture -> Knowledge Validation.
+    # Both transitions are attempted in sequence; _try_transition swallows
+    # guard/illegal-edge errors so a re-upload on an already-advanced
+    # program is harmless.
+    pkg = db.query(KnowledgePackage).filter_by(id=package_id).one()
+    _try_transition(db, pkg.program_id, "Knowledge Capture", triggered_by="upload_asset")
+    _try_transition(db, pkg.program_id, "Knowledge Validation", triggered_by="upload_asset")
     db.commit()
 
     return UploadResult(

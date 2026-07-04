@@ -63,7 +63,18 @@ from schemas.assessment import (
 from services.coverage.gap_governance import GapGovernanceState
 from services.orchestration.workflow_runner import WorkflowRunner
 from services.core.repository import Repository
-from utils.errors import NotFoundError, ValidationFailedError
+from services.core.workflow_engine import WorkflowEngine
+from utils.errors import GateNotSatisfiedError, InvalidTransitionError, NotFoundError, ValidationFailedError
+
+
+def _try_transition(db: Session, program_id: str, to_state: str, triggered_by: str) -> None:
+    """Attempt a lifecycle transition; swallow guard/illegal-edge errors.
+    See services/routers/assets.py for rationale.
+    """
+    try:
+        WorkflowEngine(db).transition(program_id, to_state, triggered_by=triggered_by)
+    except (GateNotSatisfiedError, InvalidTransitionError):
+        pass
 
 router = APIRouter(prefix="/api/packages", tags=["assessment"])
 
@@ -106,6 +117,10 @@ def generate_assessment(package_id: str, db: Session = Depends(get_db)):
 
     runner = WorkflowRunner(db)
     package_dict, package_row = runner.generate_assessment(package_id, use_cache=True)
+    db.commit()
+
+    pkg = db.query(KnowledgePackage).filter_by(id=package_id).one()
+    _try_transition(db, pkg.program_id, "Assessment", triggered_by="generate_assessment")
     db.commit()
 
     scenario_rows = (
@@ -280,6 +295,14 @@ def score_readiness(
         gaps=gaps,
         coverage_result=coverage_result,
     )
+    db.commit()
+
+    pkg = db.query(KnowledgePackage).filter_by(id=package_id).one()
+    if rollup.threshold_resolution.decision == "Ready":
+        _try_transition(db, pkg.program_id, "Ready", triggered_by="score_readiness")
+        _try_transition(db, pkg.program_id, "Completed", triggered_by="score_readiness")
+    else:
+        _try_transition(db, pkg.program_id, "Gap Resolution", triggered_by="score_readiness")
     db.commit()
 
     sr = rollup.scoring_result
