@@ -81,7 +81,7 @@ def _frontend_surface_files() -> list[Path]:
 
 
 def _top_level_imported_modules(file_path: Path) -> set[str]:
-    tree = ast.parse(file_path.read_text(), filename=str(file_path))
+    tree = ast.parse(file_path.read_text(encoding="utf-8"), filename=str(file_path))
     modules: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -151,7 +151,7 @@ def _code_level_claude_references(file_path: Path) -> set[str]:
     function args) that reference Claude -- deliberately AST-based, see
     module docstring point 3 for why a raw substring search is wrong
     here."""
-    tree = ast.parse(file_path.read_text(), filename=str(file_path))
+    tree = ast.parse(file_path.read_text(encoding="utf-8"), filename=str(file_path))
     hits: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -397,7 +397,7 @@ def test_dashboard_services_never_reconstruct_scoring_formulas():
         # Strip triple-quoted docstrings first: this module's own prose
         # names the forbidden constants to document the rule, which must
         # not itself trip the check (same approach test_dashboards.py uses).
-        code_only = _re.sub(r'"""[\s\S]*?"""', "", path.read_text())
+        code_only = _re.sub(r'"""[\s\S]*?"""', "", path.read_text(encoding="utf-8"))
         hits = [
             constant
             for constant in _FORBIDDEN_SCORING_CONSTANTS

@@ -27,7 +27,8 @@ logger = logging.getLogger("kt_assist.claude_client")
 
 def _cache_path(cache_dir: Path, cache_key: str) -> Path:
     cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir / f"{cache_key}.json"
+    safe_key = cache_key.replace(":", "-")  # colons are invalid in Windows filenames
+    return cache_dir / f"{safe_key}.json"
 
 
 def hash_content(content: str) -> str:

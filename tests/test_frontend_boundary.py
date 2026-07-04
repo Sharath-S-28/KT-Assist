@@ -45,7 +45,7 @@ def _imported_top_level_modules(file_path: Path) -> set[str]:
     `import x.y` or `from x.y import z` (relative imports -- `from . import
     x` -- have no module name at this level and are skipped; this codebase
     doesn't use them)."""
-    tree = ast.parse(file_path.read_text(), filename=str(file_path))
+    tree = ast.parse(file_path.read_text(encoding="utf-8"), filename=str(file_path))
     modules: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
