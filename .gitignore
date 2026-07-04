@@ -6,6 +6,9 @@ data/*.db-wal
 data/*.db-shm
 data/cache/
 data/graphs/
+data/graphs_smoketest/
+data/tmp_cache_dbg/
+data/.fuse_hidden*
 .venv/
 venv/
 .pytest_cache/
