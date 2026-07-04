@@ -2,15 +2,16 @@
 
 ```yaml
 last_agent: Claude
-status: A2, A7 closed; A3-A5 confirmed already-shipped; A1 unblocked
+status: A1/A2/A7 confirmed complete; A3-A5 confirmed already-shipped; only A6 remains
 ```
 
 ## 1. Current Milestone / Active Task
 - Phase 12↔13 boundary. Sessions S1–S36 (Phases 1–12) specified; core pipeline implemented and E2E-tested via DemoRunner.
-- **Active:** Phase 13 ground-truth datasets — **D1–D3 + D8 are the critical pair** that must land before Phase 12 golden E2E assertions can pass. Datasets are **backward-engineered from denominator-first ground truth** (never authored freely) so `dataset_validator` tuning loop converges against the real engine.
+- Phase 13 D1–D3+D8 (`datasets/power_bi_dashboard/` + `datasets/golden/`): **confirmed already complete 2026-07-04**, not new work — 8/8 dataset tests pass. D4–D7 (Datasets 2/3) explicitly out-of-scope for this build pass, per `manifest.json`. See issue_log.md #11.
 - Phase 12 **unified invariants suite: CLOSED 2026-07-04.** All three guards (Phase 9 number-guard, Phase 10 no-rescore, Phase 11 HTTP-only import) now live in `tests/invariants/test_architectural_boundaries.py`. Full suite: 518 passed, 1 skipped.
-- DemoRunner golden values frozen: coverage **63%→89%**, **OIS 84**, **READY/Silver** — treat as regression contract.
+- DemoRunner golden values frozen: coverage **63%→89%**, **OIS 84**, **READY/Silver** — treat as regression contract. Independent of the Phase 13 dataset (71.05%→86.84%) — two separate fixtures, not a conflict.
 - Real-transcript validation done: `KCTA_KT_Transcript_PBI_Dashboards.docx` → 9 chunks, 36 objects, KTTL auto-detected "Dashboard".
+- **Only remaining open item: A6** (repo hygiene).
 
 ## 2. Pain Points / Technical Debt
 - Rulings A3–A5 resolved 2026-07-04 (see issue_log.md #6–8) — all three were already implemented in shipped code before this session; the issue log was stale. No open rulings remain.
