@@ -45,6 +45,22 @@ class InterpretedObjectChange:
     # services/coverage/enrichment_coordinator.py (Wave 5).
     attribute_updates: Optional[dict[str, Any]] = None
     target_gap_id: Optional[str] = None  # traceability: which KnowledgeGap this change resolves
+    # --- Wave 5 completion patch (Level-5 VALIDATION_GAP closure) ---
+    # Additive, optional, ignored by every existing caller. These are
+    # top-level KnowledgeObject fields (not entries in `attributes`),
+    # matching the real schema shape (schemas/knowledge_graph.py).
+    # validation_status: free-string field (no enforced enum exists in
+    # the codebase); the only real semantic check anywhere is
+    # `!= "Unvalidated"` (services/coverage/finding_detectors.py,
+    # dimensional_scoring.py). Use the already-documented vocabulary
+    # (Unvalidated | SME-Confirmed | Walkthrough-Confirmed | Simulated)
+    # rather than inventing a new one.
+    validation_status: Optional[str] = None
+    # evidence_refs_add: references to ADD, never a replacement list --
+    # apply_interpreted_changes merges these onto the object's existing
+    # evidence_refs (union, deduplicated), so an answer can never
+    # silently delete evidence that was already there.
+    evidence_refs_add: Optional[list[str]] = None
 
 
 @dataclass

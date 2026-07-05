@@ -107,6 +107,44 @@ def build_interpretation_from_new_object(
     )
 
 
+def build_interpretation_from_evidence_confirmation(
+    gap: KnowledgeGap, raw_text: str, validation_status: str, evidence_refs: list[str],
+    objects_by_id: dict[str, KnowledgeObject],
+) -> InterpretationResult:
+    """Wave 5 completion patch (Level-5 VALIDATION_GAP closure): the
+    evidence/validation counterpart to build_interpretation_from_attribute_answers.
+    Patches only validation_status/evidence_refs onto the existing
+    object, preserving its current description/criticality/attributes
+    -- same discipline as the attribute-answer builder. evidence_refs
+    passed here are ADDITIVE (see InterpretedObjectChange.evidence_refs_add
+    and graph_update._merge_evidence_refs) -- never a replacement list.
+    """
+    if gap.object_id is None:
+        raise ValueError(
+            "build_interpretation_from_evidence_confirmation requires an object-scoped gap "
+            "(object_id is not None); VALIDATION_GAP findings are always object-scoped."
+        )
+    existing = objects_by_id[gap.object_id]
+    return InterpretationResult(
+        gap_object_type=existing.object_type,
+        raw_text=raw_text,
+        object_changes=[
+            InterpretedObjectChange(
+                action="update",
+                object_type=existing.object_type,
+                name=existing.name,
+                description=existing.description,
+                criticality=existing.criticality,
+                target_object_id=existing.id,
+                validation_status=validation_status,
+                evidence_refs_add=evidence_refs,
+                target_gap_id=gap.gap_id,
+            )
+        ],
+        relationship_changes=[],
+    )
+
+
 @dataclass
 class EnrichmentRoundResult:
     gap: KnowledgeGap

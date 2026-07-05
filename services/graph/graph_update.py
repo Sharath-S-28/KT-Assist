@@ -42,6 +42,22 @@ from services.assessment.response_interpretation import InterpretationResult
 from utils.errors import ValidationFailedError
 
 
+def _merge_evidence_refs(existing_refs: list[str], refs_to_add: Optional[list[str]]) -> list[str]:
+    """Deterministic merge: preserve existing order, append any new refs
+    not already present, deduplicate exact matches. Never removes an
+    existing reference -- `refs_to_add` is additive only, matching
+    InterpretedObjectChange.evidence_refs_add's contract."""
+    if not refs_to_add:
+        return list(existing_refs)
+    merged = list(existing_refs)
+    seen = set(existing_refs)
+    for ref in refs_to_add:
+        if ref not in seen:
+            merged.append(ref)
+            seen.add(ref)
+    return merged
+
+
 def apply_interpreted_changes(
     payload: GraphPayload, interpretation: InterpretationResult
 ) -> tuple[list[KnowledgeObject], list[Relationship], str]:
@@ -97,6 +113,8 @@ def apply_interpreted_changes(
                     "description": change.description,
                     "criticality": change.criticality,
                     "attributes": merged_attributes,
+                    "validation_status": change.validation_status if change.validation_status is not None else existing.validation_status,
+                    "evidence_refs": _merge_evidence_refs(existing.evidence_refs, change.evidence_refs_add),
                 }
             )
             nodes_by_id[change.target_object_id] = updated
