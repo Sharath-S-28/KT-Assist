@@ -216,15 +216,13 @@ def test_schema_version_bump_causes_cache_miss(monkeypatch):
 
 
 # --- 14 & 15. Full regression suite + Claude-never-scores invariant remain green ---
-def test_full_regression_and_invariants_green():
-    import subprocess
-    from pathlib import Path
-    repo_root = Path(__file__).resolve().parents[2]
-    result = subprocess.run(
-        ["python3", "-m", "pytest", "tests/", "-q", "--ignore=tests/wave2"],
-        cwd=repo_root, capture_output=True, text=True, env={"DEV_MODE": "true", "PATH": "/usr/bin:/bin"},
-    )
-    assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-2000:]
+# NOTE: previously this ran the full suite via a subprocess as a pytest
+# test. Once a second wave (Wave 3) added an equivalent test, that
+# pattern caused unbounded recursive subprocess nesting (this test's
+# subprocess would re-run Wave 3's tests, including Wave 3's own
+# full-suite subprocess test, which re-runs this file, ad infinitum).
+# Full-suite and invariant verification is done directly via
+# `pytest tests/` in CI/by the developer, not as a self-referential test.
 
 
 # --- 16. KNOWLEDGE_OBJECT_TYPES remains unchanged ---
