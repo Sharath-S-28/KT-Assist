@@ -2,8 +2,15 @@
 
 ```yaml
 last_agent: Claude
-status: All logged issues closed (A1-A2, A6-A7 closed 2026-07-04; A3-A5 confirmed already-shipped)
+status: Wave 1 (KVA/KGE hierarchical assurance foundation) complete on feature/kva-kge-hierarchical-assurance
 ```
+
+## 0. feature/kva-kge-hierarchical-assurance branch (in progress, not on main)
+Hierarchical Knowledge Assurance redesign (separate initiative from `demo-mode`, which has its own unrelated PBI-transcript demo-seeding work — do not conflate). Phases 1–3 (root-cause analysis, target architecture, Amendment Round 1, final rulings, Phase 3 Implementation Blueprint) were design-only, delivered as files, not committed to any branch.
+- **Wave 1 (Foundation & Regression Protection): complete.** `KnowledgeElementState` model (+`AttributeValue`/`RelationshipAssertion`/`EvidenceRequirement`), `Finding`/`KnowledgeGap`/`GapBundle`/`TransitionRisk` schemas, ontology registry (`config/ontology.py`, all 9 types structurally present, System fully authored), `KTTLProfileV2` + v1-compat loader, `ValidationPlan` builder (`services/coverage/validation_plan_builder.py`). `KnowledgeObject`/`Relationship` extended additively (`schema_version`, `attributes`, `validation_status`, `evidence_refs`, `state`, `provenance`). Legacy `GapCandidate` untouched; `finding_from_gap_candidate()` is the one-way compatibility adapter. Nothing in production wiring calls any of this yet.
+- Tests: 538 passed, 1 skipped (517 baseline + 21 new), zero regressions. Full detail in `PHASE_4_WAVE_1_REPORT.md`.
+- **Open question before Wave 2**: blueprint's KAI pilot names Exception/Recovery Procedure, neither in `KNOWLEDGE_OBJECT_TYPES` today; adding them touches KASE's `OBJECT_TYPE_COMPETENCY_MAP` assertion. Needs a ruling — see report §6.
+- Not yet started: KAI structured extraction pilot, arbitration changes, new Finding detectors, KCS/KQS, consolidation, prioritization, enrichment coordination, transition-risk derivation, KAR, persistence migration, API changes (all later waves).
 
 ## 1. Current Milestone / Active Task
 - Phase 12↔13 boundary. Sessions S1–S36 (Phases 1–12) specified; core pipeline implemented and E2E-tested via DemoRunner.

@@ -19,6 +19,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 import config
+from schemas.knowledge_element_state import AttributeEvidence, AttributeValue, KnowledgeElementState
 
 
 class KnowledgeObject(BaseModel):
@@ -32,6 +33,16 @@ class KnowledgeObject(BaseModel):
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     source_reference: Optional[str] = None
     version: int = Field(default=1, ge=1)
+
+    # --- Wave 1 additions (hierarchical knowledge assurance redesign) ---
+    # All additive with safe defaults so existing construction calls and
+    # legacy graph JSON (pre-dating these fields) deserialize unchanged.
+    # schema_version=1 marks a legacy-shaped object; nothing currently
+    # sets 2, since structured KAI extraction is Wave 2+ scope.
+    schema_version: int = Field(default=1, ge=1)
+    attributes: dict[str, AttributeValue] = Field(default_factory=dict)
+    validation_status: str = "Unvalidated"
+    evidence_refs: list[str] = Field(default_factory=list)
 
     @field_validator("object_type")
     @classmethod
@@ -67,6 +78,13 @@ class Relationship(BaseModel):
     source_id: str
     target_id: str
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    # --- Wave 1 additions ---
+    # Default PRESENT: every relationship that exists as an edge today
+    # was, definitionally, observed -- this preserves legacy meaning
+    # without requiring a migration pass over existing graph JSON.
+    state: KnowledgeElementState = KnowledgeElementState.PRESENT
+    provenance: Optional[AttributeEvidence] = None
 
     @field_validator("relationship_type")
     @classmethod
