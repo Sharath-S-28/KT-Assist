@@ -57,6 +57,7 @@ class KnowledgeGap:
     risk_level: str = ""
     blocking_readiness_gate: bool = False
     status: str = "Open"  # Open | Resolved | Waived
+    created_at: Optional[datetime] = None  # Wave 4: aging factor input; no persistence yet, so always "now" at consolidation time
 
 
 @dataclass

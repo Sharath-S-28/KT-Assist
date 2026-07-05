@@ -2,7 +2,7 @@
 
 ```yaml
 last_agent: Claude
-status: Wave 3 (five-level Finding detection + TC/AC/RC/OS/EV + KCS/KQS + gates) complete on feature/kva-kge-hierarchical-assurance
+status: Wave 4 (Finding->Knowledge Gap consolidation, Gap Bundles, prioritization) complete on feature/kva-kge-hierarchical-assurance
 ```
 
 ## 0. feature/kva-kge-hierarchical-assurance branch (in progress, not on main)
@@ -15,6 +15,7 @@ Hierarchical Knowledge Assurance redesign (separate initiative from `demo-mode`,
 - **Integration patch (pre-Wave 3): complete.** Wired the already-tested `arbitrate_attributes()`/`merge_structured_attributes_across_chunks()` into the live `services/agents/kai_pipeline.run_kai_pipeline()` path via a new opt-in `pilot_profile` parameter (defaults `None` = legacy, byte-identical). Cross-chunk merge now runs for real through actual ingestion + object-level boundary-check arbitration + graph persistence, not just isolated unit tests. 2 new E2E tests (CONFLICTING across chunks; non-conflicting merge + provenance survival, both via real boundary-check `merge_with` verdicts, not simulated shortcuts) + 1 legacy-unaffected test. 561 passed/1 skipped (558+3), zero regressions. No new report doc per instruction — results reported in chat only.
 - **Still open before Wave 3 proper**: real Claude-call prompt reliability is explicitly deferred to pre-demo validation (not a Wave 3 blocker per this instruction).
 - **Wave 3 (Five-Level Finding Detection + TC/AC/RC/OS/EV + KCS/KQS + Gates): complete.** New: `services/coverage/sufficiency_rules.py` (2 pilot rules), `services/coverage/finding_detectors.py` (5 detectors, Level 1 reuses existing `_validate_type_status` exactly), `services/coverage/dimensional_scoring.py` (TC/AC/RC/OS/EV, KCS/KQS with N/A renormalization, Sufficiency+Quality gates). `PILOT_PROFILE` extended with relationship/sufficiency/evidence requirements + weights. Fully independent of `coverage_engine.py`/`kva.py` (v1 paths untouched, zero calls into new code). 579 passed/1 skipped (561+19-1), zero regressions. **Bug found+fixed this wave**: two Wave-2 and Wave-3 tests both spawned full-suite subprocess self-tests, causing unbounded recursive nesting once both existed — removed both, full-suite verification now done directly, not self-referentially. **Placeholder needing a ruling**: Quality Gate reuses `COVERAGE_SUFFICIENCY_THRESHOLD` (0.85) for symmetry — whether it needs its own threshold is undecided. See `PHASE_4_WAVE_3_REPORT.md`.
+- **Wave 4 (Consolidation, Gap Bundles, Prioritization): complete.** New: `services/coverage/consolidation.py` (Finding→KnowledgeGap by (object_id, rule_family), KnowledgeGap→GapBundle), `services/coverage/prioritization.py` (3 active factors: criticality/readiness_blocking/aging; 4 more named at zero weight), `config/prioritization.py`. `KnowledgeGap` gained `created_at` (additive) for aging. 596 passed/1 skipped (579+17), zero regressions. **Pragmatic scope decision, not silently assumed**: Gap Bundle grouping reuses `rule_family` as a stand-in for "operational_scenario" — the pilot ontology has no separate scenario taxonomy yet; inventing one now would be new architecture, not consolidation. See `PHASE_4_WAVE_4_REPORT.md`.
 
 ## 1. Current Milestone / Active Task
 - Phase 12↔13 boundary. Sessions S1–S36 (Phases 1–12) specified; core pipeline implemented and E2E-tested via DemoRunner.
