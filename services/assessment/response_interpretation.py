@@ -37,6 +37,14 @@ class InterpretedObjectChange:
     description: str
     criticality: str = "Important"
     target_object_id: Optional[str] = None  # required when action == "update"
+    # --- Wave 5 additions (Hierarchical Knowledge Assurance redesign) ---
+    # Additive, optional, ignored by every existing v1 caller. Lets an
+    # "update" patch specific attributes (KnowledgeObject.attributes)
+    # instead of only description/criticality -- see
+    # services/graph/graph_update.py's apply_interpreted_changes() and
+    # services/coverage/enrichment_coordinator.py (Wave 5).
+    attribute_updates: Optional[dict[str, Any]] = None
+    target_gap_id: Optional[str] = None  # traceability: which KnowledgeGap this change resolves
 
 
 @dataclass

@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 
 from models.coverage import CoverageResult
 from schemas.graph import GraphPayload
+from schemas.knowledge_element_state import AttributeEvidence, AttributeValue, KnowledgeElementState
 from schemas.knowledge_graph import KnowledgeObject, Relationship
 from services.coverage.coverage_persistence import persist_coverage_result
 from services.graph.graph_storage import load_graph_version, save_graph_version
@@ -80,10 +81,22 @@ def apply_interpreted_changes(
                     details={"target_object_id": change.target_object_id},
                 )
             existing = nodes_by_id[change.target_object_id]
+            merged_attributes = dict(existing.attributes)
+            if change.attribute_updates:
+                # SME/provider-confirmed answers are treated as PRESENT,
+                # highest-confidence by convention -- same reasoning
+                # apply_interpreted_changes already uses for new objects'
+                # confidence=1.0 below.
+                for attr_name, attr_value in change.attribute_updates.items():
+                    merged_attributes[attr_name] = AttributeValue(
+                        value=attr_value, state=KnowledgeElementState.PRESENT,
+                        evidence=AttributeEvidence(source_reference="gap_response"),
+                    )
             updated = existing.model_copy(
                 update={
                     "description": change.description,
                     "criticality": change.criticality,
+                    "attributes": merged_attributes,
                 }
             )
             nodes_by_id[change.target_object_id] = updated
