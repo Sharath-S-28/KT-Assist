@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 
 import config
 from schemas.graph import GraphPayload
-from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, KnowledgeObject, Relationship
+from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, KnowledgeObject, Relationship, all_valid_pairs_for, is_valid_relationship_pair
 from utils.errors import ValidationFailedError
 
 
@@ -104,14 +104,12 @@ def generate_relationship_scenario(
     source_node = nodes_by_id[relationship.source_id]
     target_node = nodes_by_id[relationship.target_id]
 
-    expected_source_type, expected_target_type = RELATIONSHIP_TYPE_RULES[
-        relationship.relationship_type
-    ]
-    if source_node.object_type != expected_source_type or target_node.object_type != expected_target_type:
+    if not is_valid_relationship_pair(relationship.relationship_type, source_node.object_type, target_node.object_type):
+        valid_pairs = all_valid_pairs_for(relationship.relationship_type)
         raise ValidationFailedError(
             f"Relationship {relationship.id!r} of type {relationship.relationship_type!r} "
             f"connects ({source_node.object_type} -> {target_node.object_type}); "
-            f"expected ({expected_source_type} -> {expected_target_type}).",
+            f"expected one of {valid_pairs}.",
             details={"relationship_id": relationship.id},
         )
 

@@ -122,3 +122,40 @@ RELATIONSHIP_TYPE_RULES: dict[str, tuple[str, str]] = {
 assert set(RELATIONSHIP_TYPE_RULES) == set(config.RELATIONSHIP_TYPES), (
     "RELATIONSHIP_TYPE_RULES must cover every type in config.RELATIONSHIP_TYPES"
 )
+
+# Additive extension to RELATIONSHIP_TYPE_RULES above -- NOT a second
+# ontology: same file, same relationship/object-type vocabulary, framed
+# explicitly as "additional valid pairs" for a type that already has a
+# primary pair. Exists because the Hierarchical Knowledge Assurance
+# redesign's ontology (config/ontology.py) requires System to have a
+# DEPENDS_ON relationship (e.g. "Power BI Desktop" depending on a
+# version-requirement Dependency), which the original v1 single-pair
+# rule above never anticipated. RELATIONSHIP_TYPE_RULES itself is left
+# completely unchanged -- every existing consumer that reads it directly
+# (services/graph/knowledge_model.py, services/agents/
+# kai_relationship_discovery.py, services/assessment/scenario_validation.py's
+# competency derivation default, and the two pre-existing unit tests that
+# unpack it as a single tuple) keeps its exact current behavior. Only
+# services/assessment/scenario_generation.py (the one reported conflict)
+# is updated to also consult this table, via the helper functions below.
+RELATIONSHIP_TYPE_RULES_ADDITIONAL: dict[str, list[tuple[str, str]]] = {
+    "DEPENDS_ON": [("System", "Dependency")],
+}
+
+
+def all_valid_pairs_for(relationship_type: str) -> list[tuple[str, str]]:
+    """Primary pair (RELATIONSHIP_TYPE_RULES) plus any additional valid
+    pairs (RELATIONSHIP_TYPE_RULES_ADDITIONAL) for this relationship
+    type, primary pair first. Raises KeyError for an unregistered
+    relationship_type, matching RELATIONSHIP_TYPE_RULES's own direct-index
+    behavior rather than silently returning an empty list."""
+    primary = RELATIONSHIP_TYPE_RULES[relationship_type]
+    return [primary] + RELATIONSHIP_TYPE_RULES_ADDITIONAL.get(relationship_type, [])
+
+
+def is_valid_relationship_pair(relationship_type: str, source_type: str, target_type: str) -> bool:
+    """True if (source_type, target_type) is the primary pair or one of
+    the additional valid pairs for relationship_type. The one canonical
+    membership check -- callers should use this rather than re-deriving
+    their own comparison against RELATIONSHIP_TYPE_RULES directly."""
+    return (source_type, target_type) in all_valid_pairs_for(relationship_type)

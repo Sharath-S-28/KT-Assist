@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import config
-from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES
+from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, all_valid_pairs_for
 from services.assessment.scenario_weighting import WeightedScenario
 
 # ---------------------------------------------------------------------------
@@ -173,15 +173,25 @@ def _expected_competencies_for(type_label: str) -> set[str]:
     object/relationship type may legitimately carry, from
     config.OBJECT_TYPE_COMPETENCY_MAP alone -- never from the scenario's
     own competency_mapping field. Used to catch a generator defect
-    (mis-mapped competencies) without trusting the generator's output."""
+    (mis-mapped competencies) without trusting the generator's output.
+
+    For a relationship type with more than one valid source/target pair
+    (schemas.knowledge_graph.RELATIONSHIP_TYPE_RULES_ADDITIONAL), the
+    expected set is the UNION of competencies across every valid pair --
+    layer3's own check below is a subset check (a specific scenario
+    instance only needs to be grounded in the pair it actually used),
+    so this doesn't loosen what any single scenario can get away with,
+    it just stops a legitimately different, canonical pair from being
+    misclassified as ungrounded.
+    """
     if type_label in config.KNOWLEDGE_OBJECT_TYPES:
         return {config.OBJECT_TYPE_COMPETENCY_MAP[type_label]}
     if type_label in RELATIONSHIP_TYPE_RULES:
-        source_type, target_type = RELATIONSHIP_TYPE_RULES[type_label]
-        return {
-            config.OBJECT_TYPE_COMPETENCY_MAP[source_type],
-            config.OBJECT_TYPE_COMPETENCY_MAP[target_type],
-        }
+        expected = set()
+        for source_type, target_type in all_valid_pairs_for(type_label):
+            expected.add(config.OBJECT_TYPE_COMPETENCY_MAP[source_type])
+            expected.add(config.OBJECT_TYPE_COMPETENCY_MAP[target_type])
+        return expected
     return set()
 
 
