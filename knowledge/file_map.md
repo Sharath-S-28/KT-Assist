@@ -14,13 +14,18 @@
 - [domain.py](file:///config/domain.py): Domain enums/constants (lifecycle states, package types, object types).
 - [templates.py](file:///config/templates.py): KTTL template profiles — required/optional object sets per package type.
 - [ui.py](file:///config/ui.py): Frozen color palette + UI constants.
+- [ontology.py](file:///config/ontology.py): Hierarchical-assurance ontology registry (9 knowledge-object types; System fully authored).
+- [kttl_v2_profiles.py](file:///config/kttl_v2_profiles.py): `KTTLProfileV2` (incl. `PILOT_PROFILE`) — v2 templates w/ relationship/sufficiency/evidence requirements + weights; v1-compat loader.
+- [prioritization.py](file:///config/prioritization.py): Gap-ranking factor weights (criticality/readiness_blocking/aging active; 4 more named at zero weight).
+- [risk_rules.py](file:///config/risk_rules.py): `RiskMappingRule`s (6, one per pilot rule_family) driving deterministic TransitionRisk derivation.
 
 ## models/ (SQLAlchemy ORM)
 - [mixins.py](file:///models/mixins.py): Shared columns (ids, timestamps).
 - [program.py](file:///models/program.py): Program + lifecycle_state.
+- [KnowledgePackage] gained nullable `kttl_profile_id` (NULL = legacy v1 path, the only opt-in gate anywhere for hierarchical assurance).
 - [asset.py](file:///models/asset.py): Uploaded KT assets/chunks.
 - [participant.py](file:///models/participant.py): Participants and roles (giver/receiver).
-- [coverage.py](file:///models/coverage.py): CoverageResult incl. domain_breakdown_json.
+- [coverage.py](file:///models/coverage.py): CoverageResult incl. domain_breakdown_json; +9 nullable hierarchical columns (kcs/tc/ac/rc/kqs/os/ev scores + 2 quality-gate booleans).
 - [assessment.py](file:///models/assessment.py): Scenarios, responses, evidence.
 - [scoring.py](file:///models/scoring.py): KASE/competency/pillar score rows.
 - [readiness.py](file:///models/readiness.py): Readiness verdicts/gates.
@@ -29,6 +34,7 @@
 
 ## schemas/ (Pydantic API contracts)
 - One module per resource mirroring routers: [program](file:///schemas/program.py), [upload](file:///schemas/upload.py), [asset](file:///schemas/asset.py), [graph](file:///schemas/graph.py), [knowledge_graph](file:///schemas/knowledge_graph.py), [gap](file:///schemas/gap.py), [assessment](file:///schemas/assessment.py), [participant](file:///schemas/participant.py), [dashboard](file:///schemas/dashboard.py), [explanation](file:///schemas/explanation.py), [assurance_report](file:///schemas/assurance_report.py), [workflow](file:///schemas/workflow.py), [agent_contracts](file:///schemas/agent_contracts.py) (inter-agent I/O shapes), [common](file:///schemas/common.py).
+- Hierarchical-assurance schemas (Wave 1-7): [knowledge_element_state.py](file:///schemas/knowledge_element_state.py) (`KnowledgeElementState` 5-state model + `AttributeValue`/`RelationshipAssertion`/`EvidenceRequirement`), [hierarchical.py](file:///schemas/hierarchical.py) (`Finding`/`KnowledgeGap`/`GapBundle`/`TransitionRisk`), [gap_model.py](file:///schemas/gap_model.py) (Finding↔GapCandidate compat adapter), [kttl_profile.py](file:///schemas/kttl_profile.py), [validation_plan.py](file:///schemas/validation_plan.py), [knowledge_assurance.py](file:///schemas/knowledge_assurance.py) (KAR — `KnowledgeAssuranceResult`), [knowledge_graph.py](file:///schemas/knowledge_graph.py) additively extended (`schema_version`, `attributes`, `validation_status`, `evidence_refs`, `state`, `provenance`).
 
 ## services/core/
 - [claude_client.py](file:///services/core/claude_client.py): Sole Anthropic API wrapper + caching + dev-mode mocks.
@@ -53,6 +59,28 @@
 - [coverage_persistence.py](file:///services/coverage/coverage_persistence.py): Leaf-level persist of CoverageResult (circular-import breaker).
 - [gap_detection.py](file:///services/coverage/gap_detection.py): Derives gaps from coverage vs template.
 - [gap_governance.py](file:///services/coverage/gap_governance.py): Gap lifecycle incl. close_gap → KVA re-run + persist + graph version bump.
+
+## services/agents/ — hierarchical-assurance addition
+- [attribute_arbitration.py](file:///services/agents/attribute_arbitration.py): Python-owned final-state assignment for structured attributes across chunks (merge/CONFLICTING/deterministic-N/A/NOT_OBSERVED). Wired into `kai_pipeline.run_kai_pipeline()` via opt-in `pilot_profile` param (`None` = legacy, byte-identical).
+
+## services/coverage/ — hierarchical-assurance addition (Phase 4 Waves 1-7, `KnowledgeElementState`/Finding-based, parallel to v1 gap_detection)
+- [validation_plan_builder.py](file:///services/coverage/validation_plan_builder.py): Builds `ValidationPlan` from `KTTLProfileV2`.
+- [condition_evaluator.py](file:///services/coverage/condition_evaluator.py): Shared conditional-requirement syntax evaluator (unsupported syntax fails loudly).
+- [sufficiency_rules.py](file:///services/coverage/sufficiency_rules.py): Pilot sufficiency rules (Sufficiency/Quality gates).
+- [finding_detectors.py](file:///services/coverage/finding_detectors.py): 5-level Finding detection (Level 1 reuses v1 `_validate_type_status`).
+- [dimensional_scoring.py](file:///services/coverage/dimensional_scoring.py): TC/AC/RC/OS/EV dimensional scores, KCS/KQS (N/A-renormalized), gate evaluation. Fully independent of `coverage_engine.py`/`kva.py`.
+- [consolidation.py](file:///services/coverage/consolidation.py): Finding → `KnowledgeGap` (by object_id, rule_family) → `GapBundle`.
+- [prioritization.py](file:///services/coverage/prioritization.py): Ranks gaps per `config/prioritization.py` weights.
+- [enrichment_coordinator.py](file:///services/coverage/enrichment_coordinator.py): Thin coordinator (question gen → interpretation → graph update → revalidation), sequences existing modules only.
+- [hierarchical_closure.py](file:///services/coverage/hierarchical_closure.py): `run_hierarchical_closure_loop()` — hierarchical equivalent of `close_gaps_until_sufficient`; 6 termination reasons.
+- [transition_risk.py](file:///services/coverage/transition_risk.py): `evaluate_risk_rules()` — deterministic TransitionRisk via `config/risk_rules.py`, never calls scoring functions.
+- [knowledge_assurance_builder.py](file:///services/coverage/knowledge_assurance_builder.py) / [knowledge_assurance_persistence.py](file:///services/coverage/knowledge_assurance_persistence.py): Builds/persists KAR (pure composition; separate writer from v1's `persist_coverage_result`, same table).
+
+## services/readiness/ — hierarchical-assurance addition
+- [kar_adapter.py](file:///services/readiness/kar_adapter.py): `adapt_kar_to_gates()` — feeds KAR into unmodified `resolve_readiness()` via `gap_governance.determine_completion_status`.
+
+## services/routers/ — hierarchical-assurance addition
+- [hierarchical.py](file:///services/routers/hierarchical.py): 4 read-only endpoints (`/kar`, `/knowledge-gaps`, `/transition-risks`, `/closure-status`), 404 for non-opted-in packages. Mounted in `app.py` alongside v1 routers.
 
 ## services/assessment/
 - [scenario_generation.py](file:///services/assessment/scenario_generation.py): Claude-generated scenarios per competency.
@@ -85,7 +113,7 @@
 - [pdf_exporter.py](file:///services/exporters/pdf_exporter.py) / [pptx_exporter.py](file:///services/exporters/pptx_exporter.py): reportlab/python-pptx export.
 
 ## services/orchestration/ & demo/ & datasets/ & checks/
-- [workflow_runner.py](file:///services/orchestration/workflow_runner.py): End-to-end pipeline runner over HTTP-equivalent service calls.
+- [workflow_runner.py](file:///services/orchestration/workflow_runner.py): End-to-end pipeline runner over HTTP-equivalent service calls. +3 additive hierarchical methods (`ingest_hierarchical`, `validate_hierarchical`, `run_hierarchical_closure`) + `resolve_v2_profile_for_package`/`HIERARCHICAL_PROFILE_REGISTRY`; zero v1 methods touched.
 - [demo_runner.py](file:///services/orchestration/demo_runner.py): Scripted E2E demo (frozen golden values 63%→89%, OIS 84, READY/Silver); [services/demo/demo_runner.py](file:///services/demo/demo_runner.py) legacy shim.
 - [dataset_loader.py](file:///services/datasets/dataset_loader.py) / [dataset_validator.py](file:///services/datasets/dataset_validator.py): Phase-13 ground-truth dataset load + tuning-loop validation harness.
 - [definition_of_done.py](file:///services/checks/definition_of_done.py): Programmatic DoD probes per session.

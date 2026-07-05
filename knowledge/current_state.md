@@ -2,10 +2,10 @@
 
 ```yaml
 last_agent: Claude
-status: Wave 7 (final integration/rollout) complete on feature/kva-kge-hierarchical-assurance
+status: feature/kva-kge-hierarchical-assurance (Wave 1-7) merged to main 2026-07-06 via fast-forward (no conflicts; 676 passed/1 skipped, unchanged). demo-mode branch rebased onto new main (1 doc conflict in this file, resolved) and force-pushed.
 ```
 
-## 0. feature/kva-kge-hierarchical-assurance branch (in progress, not on main)
+## 0. feature/kva-kge-hierarchical-assurance — MERGED to main 2026-07-06 (fast-forward, clean, no conflicts)
 Hierarchical Knowledge Assurance redesign (separate initiative from `demo-mode`, which has its own unrelated PBI-transcript demo-seeding work — do not conflate). Phases 1–3 (root-cause analysis, target architecture, Amendment Round 1, final rulings, Phase 3 Implementation Blueprint) were design-only, delivered as files, not committed to any branch.
 - **Wave 1 (Foundation & Regression Protection): complete.** `KnowledgeElementState` model (+`AttributeValue`/`RelationshipAssertion`/`EvidenceRequirement`), `Finding`/`KnowledgeGap`/`GapBundle`/`TransitionRisk` schemas, ontology registry (`config/ontology.py`, all 9 types structurally present, System fully authored), `KTTLProfileV2` + v1-compat loader, `ValidationPlan` builder (`services/coverage/validation_plan_builder.py`). `KnowledgeObject`/`Relationship` extended additively (`schema_version`, `attributes`, `validation_status`, `evidence_refs`, `state`, `provenance`). Legacy `GapCandidate` untouched; `finding_from_gap_candidate()` is the one-way compatibility adapter. Nothing in production wiring calls any of this yet.
 - Tests: 538 passed, 1 skipped (517 baseline + 21 new), zero regressions. Full detail in `PHASE_4_WAVE_1_REPORT.md`.
