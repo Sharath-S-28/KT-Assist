@@ -75,6 +75,16 @@ class KnowledgePackage(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Float, nullable=True
     )
 
+    # Wave 7 (Hierarchical Knowledge Assurance redesign) addition.
+    # NULL (the default, every existing row) = legacy v1 path, completely
+    # unchanged. Set to a registered v2 profile_id (see
+    # config/kttl_v2_profiles.py's PILOT_PROFILE) to opt this package
+    # into the hierarchical path end to end -- KAI structured extraction,
+    # ValidationPlan/Finding detection, KCS/KQS, KAR, the hierarchical
+    # closure loop. This is the entire "v2 profile/version selection"
+    # gate; no other code branches on anything else.
+    kttl_profile_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+
     # Latest known coverage score (denormalized convenience field; the
     # CoverageResult table is the system of record for history).
     latest_coverage_score: Mapped[Optional[float]] = mapped_column(

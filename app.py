@@ -80,6 +80,7 @@ def create_app() -> FastAPI:
         explanation,
         gaps,
         graph,
+        hierarchical,
         packages,
         participants,
         programs,
@@ -95,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(assets.router)
     app.include_router(gaps.router)
     app.include_router(assessment.router)
+    app.include_router(hierarchical.router)
 
     return app
 

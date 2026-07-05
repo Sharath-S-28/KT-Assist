@@ -36,6 +36,24 @@ class CoverageResult(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     sufficiency_gate_passed: Mapped[bool] = mapped_column(nullable=False, default=False)
 
+    # --- Wave 7 additions (Hierarchical Knowledge Assurance redesign) ---
+    # All nullable, all NULL for every v1 row (legacy coverage_score
+    # above remains the only number those rows ever had). Populated only
+    # when a package's KnowledgePackage.kttl_profile_id selects a v2
+    # profile -- see services/coverage/knowledge_assurance_builder.py.
+    # A v1 row's coverage_score is NOT the same number as kcs_score for
+    # a v2 row -- they come from different formulas (Wave 3's docstrings
+    # cover why) -- so this is additive data, not a renamed column.
+    kcs_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    tc_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ac_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    rc_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    kqs_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    os_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ev_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    quality_gate_applicable: Mapped[Optional[bool]] = mapped_column(nullable=True)
+    quality_gate_passed: Mapped[Optional[bool]] = mapped_column(nullable=True)
+
     def __repr__(self) -> str:
         return f"<CoverageResult package_id={self.package_id} score={self.coverage_score}>"
 

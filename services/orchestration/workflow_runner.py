@@ -83,6 +83,31 @@ from services.agents.kra import compose_assessment_package_for_package, persist_
 from services.agents.kva import KVAResult, run_kva
 from services.assessment.response_interpretation import InterpretationResult
 
+# Wave 7 (Hierarchical Knowledge Assurance redesign) additions -- all
+# additive imports, nothing above this line is touched.
+from config.kttl_v2_profiles import PILOT_PROFILE
+from models.program import KnowledgePackage
+from models.asset import KnowledgeGraphVersion
+from schemas.knowledge_assurance import KnowledgeAssuranceResult
+from schemas.kttl_profile import KTTLProfileV2
+from services.coverage.hierarchical_closure import HierarchicalClosureResult, run_hierarchical_closure_loop
+from services.coverage.knowledge_assurance_builder import build_knowledge_assurance_result
+from services.coverage.knowledge_assurance_persistence import persist_knowledge_assurance_result
+
+# profile_id -> KTTLProfileV2. Only one registered v2 profile exists
+# today (the Wave 2 pilot); a later wave would add entries here, not
+# change how they're looked up.
+HIERARCHICAL_PROFILE_REGISTRY: dict[str, KTTLProfileV2] = {PILOT_PROFILE.profile_id: PILOT_PROFILE}
+
+
+def resolve_v2_profile_for_package(package: KnowledgePackage) -> Optional[KTTLProfileV2]:
+    """None means: this package has not opted into the hierarchical
+    path (KnowledgePackage.kttl_profile_id is NULL, the default for
+    every existing row) -- the only gate anywhere in this file."""
+    if not package.kttl_profile_id:
+        return None
+    return HIERARCHICAL_PROFILE_REGISTRY.get(package.kttl_profile_id)
+
 # Once Phase 13's D1-D3/D8 datasets exist, the golden E2E test should
 # assert exact equality against them within this tolerance (kept here,
 # not invented per-test, so every golden assertion uses one constant).
@@ -211,6 +236,90 @@ class WorkflowRunner:
             kva_result = update_result.kva_result
             iterations += 1
         return results
+
+    # -- Stage 3b: Hierarchical path (Wave 7, opt-in via kttl_profile_id) --
+
+    def ingest_hierarchical(
+        self,
+        package_id: str,
+        filename: str,
+        content: bytes,
+        profile: Optional[KTTLProfileV2] = None,
+        extraction_mock: Optional[dict[str, Any]] = None,
+        boundary_mocks: Optional[list[dict[str, Any]]] = None,
+        relationship_mock: Optional[dict[str, Any]] = None,
+    ) -> KAIPipelineResult:
+        """Same ingestion pipeline as ingest() -- run_kai_pipeline,
+        unmodified -- just always passing pilot_profile so structured
+        attributes get extracted for the pilot object types. `profile`
+        defaults to resolving from the package's own kttl_profile_id;
+        pass one explicitly to override (e.g. in a test)."""
+        resolved_profile = profile or resolve_v2_profile_for_package(
+            self.db.query(KnowledgePackage).filter_by(id=package_id).first()
+        )
+        return run_kai_pipeline(
+            self.db, package_id, filename, content,
+            extraction_mock=extraction_mock, boundary_mocks=boundary_mocks, relationship_mock=relationship_mock,
+            claude_client=self.client, pilot_profile=resolved_profile,
+        )
+
+    def validate_hierarchical(
+        self, package_id: str, version: Optional[int] = None, profile: Optional[KTTLProfileV2] = None, persist: bool = True,
+    ) -> KnowledgeAssuranceResult:
+        """Build a KnowledgeAssuranceResult for the package's current
+        (or a specific) graph version -- pure composition, see
+        services.coverage.knowledge_assurance_builder. Persists via
+        persist_knowledge_assurance_result unless persist=False (e.g. a
+        read-only preview)."""
+        package = self.db.query(KnowledgePackage).filter_by(id=package_id).first()
+        resolved_profile = profile or resolve_v2_profile_for_package(package)
+        if resolved_profile is None:
+            raise ValueError(
+                f"Package {package_id!r} is not opted into the hierarchical path "
+                "(kttl_profile_id is unset or unregistered) and no profile was given explicitly."
+            )
+        payload = load_graph_version(self.db, package_id, version=version)
+        version_row = (
+            self.db.query(KnowledgeGraphVersion)
+            .filter_by(package_id=package_id, **({"version_number": version} if version is not None else {}))
+            .order_by(KnowledgeGraphVersion.version_number.desc())
+            .first()
+        )
+        kar = build_knowledge_assurance_result(
+            payload.nodes, payload.relationships, resolved_profile, package_id, version_row.id,
+        )
+        if persist:
+            persist_knowledge_assurance_result(self.db, kar)
+            self.db.commit()
+        return kar
+
+    def run_hierarchical_closure(
+        self,
+        package_id: str,
+        get_interpretation_for_gap: Any,
+        profile: Optional[KTTLProfileV2] = None,
+        max_rounds: int = MAX_GAP_CLOSURE_ITERATIONS,
+    ) -> HierarchicalClosureResult:
+        """The hierarchical equivalent of close_gaps_until_sufficient(),
+        wired to this package's current graph. Delegates entirely to
+        services.coverage.hierarchical_closure.run_hierarchical_closure_loop
+        (Wave 5) -- no closure logic here, only graph loading + profile
+        resolution. Does not persist the resulting graph/KAR itself;
+        call validate_hierarchical() afterward (or extend the caller)
+        if that's needed -- kept separate so a caller can inspect the
+        result before deciding to persist."""
+        package = self.db.query(KnowledgePackage).filter_by(id=package_id).first()
+        resolved_profile = profile or resolve_v2_profile_for_package(package)
+        if resolved_profile is None:
+            raise ValueError(
+                f"Package {package_id!r} is not opted into the hierarchical path "
+                "(kttl_profile_id is unset or unregistered) and no profile was given explicitly."
+            )
+        payload = load_graph_version(self.db, package_id)
+        return run_hierarchical_closure_loop(
+            payload.nodes, payload.relationships, resolved_profile, package_id,
+            get_interpretation_for_gap, max_rounds=max_rounds,
+        )
 
     # -- Stage 4: Assessment Generation -----------------------------------
 
