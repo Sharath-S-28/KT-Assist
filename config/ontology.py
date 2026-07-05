@@ -1,5 +1,5 @@
 """
-config/ontology.py — Object-Type Ontology Registry (Phase 4 / Wave 1,
+config/ontology.py — Object-Type Ontology Registry (Phase 4 / Wave 1-2,
 Hierarchical Knowledge Assurance redesign).
 
 Extends config.KNOWLEDGE_OBJECT_TYPES (unchanged) with per-type
@@ -16,17 +16,15 @@ does NOT attempt production-grade sufficiency rules for every type yet
 waves need them. An empty entry means "no additional requirement beyond
 type presence," which is exactly today's v1 behavior for that type.
 
-KNOWN DEVIATION FROM THE PHASE 3 BLUEPRINT'S PILOT SCOPE: the blueprint's
-structured-KAI pilot (Section 9) names System, Exception, and Recovery
-Procedure. Exception and Recovery Procedure are NOT in
-config.KNOWLEDGE_OBJECT_TYPES today. Adding them would require also
-updating config.OBJECT_TYPE_COMPETENCY_MAP (services/agents/kase_scoring.py
-asserts these two sets are equal at import time) and touching KASE
-scoring -- out of Wave 1 scope, and a real product decision, not a
-default to make silently. See PHASE_4_WAVE_1_REPORT.md for the
-recommendation. For Wave 1, only System's entry is populated with
-realistic (not just structurally-present) requirements, as the one
-pilot type that already exists in the ontology.
+WAVE 2 RULING: Exception and Recovery Procedure are NOT added to
+config.KNOWLEDGE_OBJECT_TYPES (that coupling with KASE's
+OBJECT_TYPE_COMPETENCY_MAP assertion remains deliberately unresolved --
+see docs/adr/0001-deferred-exception-recovery-procedure-ontology.md).
+The structured-KAI pilot instead uses three EXISTING types: System,
+Known Issue, Task -- now fully authored below with pilot attribute
+schemas. Known Issue and Task are pilot schemas only; they do not
+encode a permanent equivalence with a future Exception or Recovery
+Procedure type (per the ADR).
 """
 
 from dataclasses import dataclass, field
@@ -64,7 +62,19 @@ class ObjectTypeSpec:
 
 OBJECT_TYPE_SPECS: dict[str, ObjectTypeSpec] = {
     "Process": ObjectTypeSpec(object_type="Process"),
-    "Task": ObjectTypeSpec(object_type="Task"),
+    "Task": ObjectTypeSpec(
+        # Wave 2 pilot schema. Deliberately does NOT encode a permanent
+        # equivalence with a future "Recovery Procedure" type -- see
+        # docs/adr/0001-deferred-exception-recovery-procedure-ontology.md.
+        object_type="Task",
+        mandatory_attributes=["trigger_condition", "execution_steps", "responsible_role", "validation_criteria"],
+        rule_family_map={
+            "trigger_condition": "detection",
+            "execution_steps": "resolution",
+            "responsible_role": "access_ownership",
+            "validation_criteria": "resolution",
+        },
+    ),
     "System": ObjectTypeSpec(
         object_type="System",
         mandatory_attributes=["system_name", "purpose", "access_path"],
@@ -88,7 +98,22 @@ OBJECT_TYPE_SPECS: dict[str, ObjectTypeSpec] = {
         mandatory_attributes=["owner"],
         rule_family_map={"owner": "access_ownership"},
     ),
-    "Known Issue": ObjectTypeSpec(object_type="Known Issue"),
+    "Known Issue": ObjectTypeSpec(
+        # Wave 2 pilot schema. Deliberately does NOT encode a permanent
+        # equivalence with a future "Exception" type -- see
+        # docs/adr/0001-deferred-exception-recovery-procedure-ontology.md.
+        object_type="Known Issue",
+        mandatory_attributes=["trigger", "impact", "detection_method", "resolution_path"],
+        conditional_attributes=[
+            ConditionalAttribute(attribute="escalation_condition", condition="requires_escalation == true"),
+        ],
+        not_applicable_conditions={"resolution_path": "self_resolving == true"},
+        rule_family_map={
+            "detection_method": "detection",
+            "resolution_path": "resolution",
+            "escalation_condition": "escalation",
+        },
+    ),
 }
 
 

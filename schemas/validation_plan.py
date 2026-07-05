@@ -55,6 +55,10 @@ class ValidationPlan:
     # but excluded as a validly-approved NOT_APPLICABLE, rather than
     # never having been candidates at all (conditional-false case).
     excluded_as_na: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    # Wave 2: condition strings that failed to parse under the narrow
+    # supported grammar -- a visible, inspectable defect list, never a
+    # silent False. Each entry: (object_id, attribute_or_relation, condition).
+    unsupported_conditions: list[tuple[str, str, str]] = field(default_factory=list)
 
     @property
     def is_v1_shaped(self) -> bool:
