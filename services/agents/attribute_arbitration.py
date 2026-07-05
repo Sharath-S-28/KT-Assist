@@ -41,7 +41,7 @@ does not).
 from dataclasses import dataclass
 from typing import Optional
 
-from config.ontology import ObjectTypeSpec
+from config.ontology import ObjectTypeSpec, get_object_type_spec
 from schemas.knowledge_element_state import AttributeEvidence, AttributeValue, KnowledgeElementState
 from schemas.knowledge_graph import KnowledgeObject
 from schemas.kttl_profile import KTTLProfileV2
@@ -138,6 +138,84 @@ def _finalize_single_attribute(
 
     # All proposals were malformed/dropped -- treat as unaddressed.
     return AttributeValue(value=None, state=KnowledgeElementState.NOT_OBSERVED)
+
+
+def _resolve_final_target(object_id: str, merged_into: dict[str, str]) -> str:
+    """Follow a merge chain (A merged into B, B merged into C, ...) to
+    its final surviving object id. Guards against a cycle defensively
+    (shouldn't occur given arbitrate_objects' semantics, but this must
+    never hang)."""
+    seen: set[str] = set()
+    current = object_id
+    while current in merged_into and current not in seen:
+        seen.add(current)
+        current = merged_into[current]
+    return current
+
+
+def _attribute_value_to_proposal(attr: AttributeValue) -> Optional["ProposedAttribute"]:
+    if attr.state not in CLAUDE_PROPOSABLE_STATES:
+        return None  # NOT_OBSERVED / malformed -- this chunk said nothing usable about it
+    return ProposedAttribute(
+        value=attr.value if attr.state == KnowledgeElementState.PRESENT else None,
+        proposed_state=attr.state,
+        source_reference=attr.evidence.source_reference if attr.evidence else None,
+        source_excerpt_id=attr.evidence.source_excerpt_id if attr.evidence else None,
+        extraction_run_id=attr.evidence.extraction_run_id if attr.evidence else None,
+    )
+
+
+def merge_structured_attributes_across_chunks(
+    final_objects: list[KnowledgeObject],
+    pass1_objects: list[KnowledgeObject],
+    arbitration_log: list[dict],
+    profile: KTTLProfileV2,
+) -> list[KnowledgeObject]:
+    """Live-pipeline integration point (Phase 4 Wave 3 integration
+    patch): groups each surviving final object's own pass-1 attribute
+    proposals together with those of every pass-1 object that merged
+    into it (per the existing object-level arbitration_log), then calls
+    the SAME, unmodified arbitrate_attributes() per group.
+
+    Only touches object types the given profile has opted into
+    (profile.attribute_requirements) -- everything else passes through
+    with whatever attributes it already had (empty, for legacy/non-pilot
+    extraction). Legacy callers that never pass a v2 profile never reach
+    this function at all (see services/agents/kai_pipeline.py).
+    """
+    merged_into = {
+        entry["object_id"]: entry["target_id"]
+        for entry in arbitration_log
+        if entry.get("action") == "merged_into" and "target_id" in entry
+    }
+    pass1_by_id = {obj.id: obj for obj in pass1_objects}
+
+    contributors_by_final_id: dict[str, list[KnowledgeObject]] = {obj.id: [] for obj in final_objects}
+    for obj in pass1_objects:
+        final_id = _resolve_final_target(obj.id, merged_into)
+        if final_id in contributors_by_final_id:
+            contributors_by_final_id[final_id].append(obj)
+
+    result: list[KnowledgeObject] = []
+    for final_obj in final_objects:
+        if final_obj.object_type not in profile.attribute_requirements:
+            result.append(final_obj)
+            continue
+
+        spec = get_object_type_spec(final_obj.object_type)
+        proposals_by_attribute: dict[str, list[ProposedAttribute]] = {}
+        for contributor in contributors_by_final_id.get(final_obj.id, [final_obj]):
+            for attr_name, attr_value in contributor.attributes.items():
+                proposal = _attribute_value_to_proposal(attr_value)
+                if proposal is not None:
+                    proposals_by_attribute.setdefault(attr_name, []).append(proposal)
+
+        final_attributes, _diagnostics = arbitrate_attributes(
+            final_obj.object_type, spec, profile, proposals_by_attribute, final_obj
+        )
+        result.append(final_obj.model_copy(update={"attributes": final_attributes}))
+
+    return result
 
 
 def arbitrate_attributes(

@@ -2,7 +2,7 @@
 
 ```yaml
 last_agent: Claude
-status: Wave 2 (structured KAI extraction pilot) complete on feature/kva-kge-hierarchical-assurance
+status: Wave 2 integration patch (live pipeline wiring) complete on feature/kva-kge-hierarchical-assurance
 ```
 
 ## 0. feature/kva-kge-hierarchical-assurance branch (in progress, not on main)
@@ -12,7 +12,8 @@ Hierarchical Knowledge Assurance redesign (separate initiative from `demo-mode`,
 - **Open question before Wave 2**: blueprint's KAI pilot names Exception/Recovery Procedure, neither in `KNOWLEDGE_OBJECT_TYPES` today; adding them touches KASE's `OBJECT_TYPE_COMPETENCY_MAP` assertion. Needs a ruling — see report §6.
 - Not yet started: KAI structured extraction pilot, arbitration changes, new Finding detectors, KCS/KQS, consolidation, prioritization, enrichment coordination, transition-risk derivation, KAR, persistence migration, API changes (all later waves).
 - **Wave 2 (Structured KAI Extraction Pilot): complete.** System/Known Issue/Task pilot schemas authored in `config/ontology.py`; `PILOT_PROFILE` v2 KTTL profile (`config/kttl_v2_profiles.py`); `services/agents/attribute_arbitration.py` (Python-owned final state assignment: merge/CONFLICTING/deterministic-N/A/NOT_OBSERVED); shared `services/coverage/condition_evaluator.py` (unsupported syntax now fails visibly, not silently false); `kai_extraction.py` extended opt-in only (`pilot_object_types` payload key) — legacy path fully byte-identical when absent. ADR `docs/adr/0001-...` records Exception/Recovery Procedure deferred, `KNOWLEDGE_OBJECT_TYPES` and KASE map both unchanged (tested). 558 passed/1 skipped (538+20), zero regressions. Real bug found+fixed this wave: N/A/conditional attribute evaluation order now independent of input order. See `PHASE_4_WAVE_2_REPORT.md`.
-- **Open before Wave 3**: cross-chunk attribute merge is proven correct in isolation but not wired into the live ingestion pipeline (only the existing object-level boundary-check merge runs live); prompt reliability untested against a real Claude call (this environment is DEV_MODE/mock-only throughout). Recommend resolving one of these before starting Finding detectors.
+- **Integration patch (pre-Wave 3): complete.** Wired the already-tested `arbitrate_attributes()`/`merge_structured_attributes_across_chunks()` into the live `services/agents/kai_pipeline.run_kai_pipeline()` path via a new opt-in `pilot_profile` parameter (defaults `None` = legacy, byte-identical). Cross-chunk merge now runs for real through actual ingestion + object-level boundary-check arbitration + graph persistence, not just isolated unit tests. 2 new E2E tests (CONFLICTING across chunks; non-conflicting merge + provenance survival, both via real boundary-check `merge_with` verdicts, not simulated shortcuts) + 1 legacy-unaffected test. 561 passed/1 skipped (558+3), zero regressions. No new report doc per instruction — results reported in chat only.
+- **Still open before Wave 3 proper**: real Claude-call prompt reliability is explicitly deferred to pre-demo validation (not a Wave 3 blocker per this instruction).
 
 ## 1. Current Milestone / Active Task
 - Phase 12↔13 boundary. Sessions S1–S36 (Phases 1–12) specified; core pipeline implemented and E2E-tested via DemoRunner.

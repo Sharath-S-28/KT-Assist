@@ -33,9 +33,11 @@ from schemas.knowledge_graph import KnowledgeObject, Relationship
 from services.core.asset_ingestion import ingest_asset
 from services.core.claude_client import ClaudeClient
 from services.graph.graph_storage import save_graph_version
+from services.agents.attribute_arbitration import merge_structured_attributes_across_chunks
 from services.agents.kai_extraction import KAIAgent
 from services.agents.kai_relationship_discovery import KAIRelationshipAgent
 from services.graph.knowledge_model import validate_object, validate_relationship
+from schemas.kttl_profile import KTTLProfileV2
 
 LOW_CONFIDENCE_THRESHOLD = 0.5
 
@@ -120,29 +122,43 @@ def run_kai_pipeline(
     boundary_mocks: Optional[list[dict[str, Any]]] = None,
     relationship_mock: Optional[dict[str, Any]] = None,
     claude_client: Optional[ClaudeClient] = None,
+    pilot_profile: Optional[KTTLProfileV2] = None,
 ) -> KAIPipelineResult:
     """Run the full Upload -> v1 graph -> inventory/summary chain for
     one asset. Every Claude call inside (extraction, boundary checks,
     relationship discovery) shares one ClaudeClient instance so DEV_MODE
     + mock_response/boundary_mocks/relationship_mock make the whole run
-    deterministic and reproducible offline with zero API spend."""
+    deterministic and reproducible offline with zero API spend.
+
+    `pilot_profile`: Wave 3 integration patch, opt-in only. None (the
+    default) reproduces the exact legacy path -- no pilot_object_types
+    passed to extraction, no structured attribute arbitration performed.
+    When given a KTTLProfileV2 with non-empty attribute_requirements,
+    those object types are extracted with structured attributes
+    (services.agents.kai_extraction's pilot mode) and, after object-level
+    arbitration/relationship discovery complete exactly as before,
+    services.agents.attribute_arbitration.merge_structured_attributes_across_chunks
+    performs cross-chunk attribute merge/conflict/N/A/provenance
+    finalization on the reconciled objects before the graph is saved.
+    """
     client = claude_client or ClaudeClient()
+    pilot_object_types = set(pilot_profile.attribute_requirements.keys()) if pilot_profile else None
 
     asset, chunks = ingest_asset(db, package_id, filename, content)
 
     extraction_agent = KAIAgent(claude_client=client)
+    extraction_payload = {
+        "asset_id": asset.id,
+        "content_hash": asset.content_hash,
+        "filename": asset.filename,
+        "chunks": chunks,
+        "mock_response": extraction_mock,
+    }
+    if pilot_object_types:
+        extraction_payload["pilot_object_types"] = pilot_object_types
+        extraction_payload["extraction_run_id"] = asset.id
     extraction_response = extraction_agent.run(
-        AgentRequest(
-            agent_name="KAI",
-            package_id=package_id,
-            payload={
-                "asset_id": asset.id,
-                "content_hash": asset.content_hash,
-                "filename": asset.filename,
-                "chunks": chunks,
-                "mock_response": extraction_mock,
-            },
-        )
+        AgentRequest(agent_name="KAI", package_id=package_id, payload=extraction_payload)
     )
     pass1_objects = extraction_response.result["objects"]
 
@@ -172,6 +188,12 @@ def run_kai_pipeline(
 
     nodes = [validate_object(raw) for raw in relationship_result["objects"]]
     relationships = [validate_relationship(raw) for raw in relationship_result["relationships"]]
+
+    if pilot_profile is not None and pass1_objects:
+        pass1_node_objects = [validate_object(raw) for raw in pass1_objects]
+        nodes = merge_structured_attributes_across_chunks(
+            nodes, pass1_node_objects, relationship_result["arbitration_log"], pilot_profile
+        )
 
     version_row, payload = save_graph_version(db, package_id, nodes, relationships)
 
