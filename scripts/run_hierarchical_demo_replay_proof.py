@@ -41,7 +41,11 @@ from services.demo.hierarchical_fixtures import (
     RECEIVER_NAMES,
 )
 from services.demo.hierarchical_gap_answers import get_interpretation_for_gap
-from services.demo.receiver_strategies import expected_golden_outcomes, load_receiver_strategies
+from services.demo.receiver_strategies import (
+    build_receiver_scenario_responses,
+    expected_golden_outcomes,
+    load_receiver_strategies,
+)
 
 ROLE_TIER = "Primary"
 
@@ -239,7 +243,7 @@ def main() -> None:
     receiver_results = {}
 
     for participant_id, strategy in strategies.items():
-        pairs = runner.build_scenario_responses(package_row, participant_id, strategy)
+        pairs = build_receiver_scenario_responses(session, package_row.scenarios, participant_id, strategy)
         session.commit()
         rollup = score_and_persist_readiness(
             session, package_id=package.id, participant_id=participant_id, role_tier=ROLE_TIER,
@@ -257,6 +261,7 @@ def main() -> None:
             "open_gap_gate_passed": rollup.open_gap_gate_passed,
             "final_decision": rollup.threshold_resolution.decision,
             "certification_level": rollup.threshold_resolution.certification_level,
+            "boundary_zone_applied": rollup.threshold_resolution.boundary_zone_applied,
             "golden_expected_decision": golden_expected[participant_id]["expected_decision"],
         }
         print(f"[{RECEIVER_NAMES[participant_id]}] OIS={rollup.scoring_result.ois_score:.2f} "
