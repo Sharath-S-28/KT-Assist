@@ -393,6 +393,43 @@ class ApiClient:
     def export_assurance_report_pptx(self, program_id: str) -> bytes:
         return self._get(f"/api/programs/{program_id}/assurance-report/export/pptx").content
 
+    # -- hierarchical demo orchestration (services/routers/demo_hierarchical.py,
+    # UI Phase 1) ------------------------------------------------------------
+    #
+    # Plain-dict returns (not typed schemas) -- these are demo-only,
+    # presentation-facing endpoints, not part of the core program/package
+    # API surface; the response shapes are simple and self-describing
+    # (stage/package_id/etc.), so a parallel Pydantic schema module would
+    # add ceremony without adding safety here.
+
+    def get_demo_state(self) -> dict:
+        return self._get("/api/demo/hierarchical/state").json()
+
+    def get_demo_summary(self) -> dict:
+        return self._get("/api/demo/hierarchical/summary").json()
+
+    def reset_demo_hierarchical(self) -> dict:
+        return self._post("/api/demo/hierarchical/reset").json()
+
+    def ingest_demo_hierarchical(self) -> dict:
+        return self._post("/api/demo/hierarchical/ingest").json()
+
+    def validate_demo_hierarchical(self) -> dict:
+        return self._post("/api/demo/hierarchical/validate").json()
+
+    def advance_demo_enrichment(self, max_rounds: int = 1) -> dict:
+        response = self._client.post(
+            "/api/demo/hierarchical/enrichment/advance", params={"max_rounds": max_rounds},
+        )
+        _raise_for_status(response)
+        return response.json()
+
+    def complete_demo_assurance(self) -> dict:
+        return self._post("/api/demo/hierarchical/assurance/complete").json()
+
+    def assess_demo_receiver(self, participant_id: str) -> dict:
+        return self._post(f"/api/demo/hierarchical/receivers/{participant_id}/assess").json()
+
 
 _default_client: Optional[ApiClient] = None
 

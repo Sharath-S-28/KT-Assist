@@ -43,11 +43,19 @@ a future session adds receiver-scoped auth.
 
 One ApiClient is built once per Streamlit session (st.session_state)
 and shared by every screen, per frontend/api_client.py's get_client().
+
+UI Phase 1 addition (guided demo): a new "Executive Command Center"
+nav group (frontend/guided_demo/) sits alongside the 10 existing
+generic screens, unmodified, and is now the default landing page --
+this is additive only. st.session_state["_nav_pages"] exposes the
+guided-demo st.Page objects so one guided-demo screen can
+st.switch_page() to another (see frontend/guided_demo/executive_dashboard.py).
 """
 
 import streamlit as st
 
 from frontend.api_client import get_client
+from frontend.guided_demo import executive_dashboard, guided_shell
 from frontend.screens import (
     screen1_executive_dashboard,
     screen2_program_dashboard,
@@ -60,6 +68,14 @@ from frontend.screens import (
     screen9_explanation_traceability,
     screen10_kt_assurance_report,
 )
+
+
+def _guided_executive_dashboard():
+    executive_dashboard.render(get_client())
+
+
+def _guided_shell():
+    guided_shell.render(get_client())
 
 
 def _screen1():
@@ -110,7 +126,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    overview = st.Page(_screen1, title="Executive Dashboard", url_path="executive-dashboard", default=True)
+    overview = st.Page(_screen1, title="Executive Dashboard", url_path="executive-dashboard")
     programs = st.Page(_screen2, title="Program Dashboard", url_path="program-dashboard")
     packages = st.Page(_screen3, title="Package Workspace", url_path="package-workspace")
     graph = st.Page(_screen4, title="Graph Explorer", url_path="graph-explorer")
@@ -121,8 +137,26 @@ def main() -> None:
     explanation = st.Page(_screen9, title="Explanation & Traceability", url_path="explanation-traceability")
     assurance_report = st.Page(_screen10, title="KT Assurance Report", url_path="assurance-report")
 
+    command_center = st.Page(
+        _guided_executive_dashboard, title="Executive Command Center", url_path="executive-command-center",
+        default=True,
+    )
+    guided_shell_page = st.Page(
+        _guided_shell, title="Guided Demo Case Shell", url_path="guided-demo-case-shell",
+    )
+    # Exposed so any guided-demo screen can st.switch_page(...) to another
+    # one -- st.switch_page requires the exact st.Page object (or a file
+    # path) a function-based page was registered with; this repo's nav is
+    # entirely function-based (see module docstring), so there is no file
+    # path to pass instead.
+    st.session_state["_nav_pages"] = {
+        "executive_command_center": command_center,
+        "guided_shell": guided_shell_page,
+    }
+
     nav = st.navigation(
         {
+            "Executive Command Center": [command_center, guided_shell_page],
             "Overview": [overview],
             "Programs": [programs, assurance_report],
             "Knowledge Packages": [packages, graph, validation, gap_resolution],
