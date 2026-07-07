@@ -5,86 +5,32 @@ Offline proof (no HTTP, no UI) that the full hierarchical lifecycle
 replays deterministically against the pinned demo package: real
 ingest_hierarchical -> real validate_hierarchical -> real fixture-driven
 run_hierarchical_closure -> real KAR -> real generate_assessment ->
-real KASE scoring + real KRA decision for 3 pinned receivers, using
-only the fixtures in services/demo/.
+real KASE scoring + real KRA decision for 3 pinned receivers.
 
-Every number this script prints comes from the real Python engine.
-Only two things are pre-authored (both already-established, both
-described in services/demo/*): (1) the KAI extraction content, reused
-unmodified from scripts/seed_demo_kai_cache.py plus the pilot attribute
-overlay; (2) the 7 evidence-confirmation gap answers and the 3
-receiver response strategies.
+This script is now a thin CLI wrapper around
+services.demo.hierarchical_demo_orchestrator.HierarchicalDemoOrchestrator
+(the demo orchestration layer, issue_log #17) -- all sequencing lives
+there; this script only drives it end-to-end and renders the same
+detailed report it always has. Every number printed/reported still
+comes from the real Python engine, unchanged. Only two things are
+pre-authored (both already-established, both described in
+services/demo/*): (1) the KAI extraction content, reused unmodified
+from scripts/seed_demo_kai_cache.py plus the pilot attribute overlay;
+(2) the 7 evidence-confirmation gap answers and the 3 receiver
+response strategies.
 
 Run: python -m scripts.run_hierarchical_demo_replay_proof
 """
 
 import json
-from types import SimpleNamespace
 
 import database
 import models  # noqa: F401 -- register all tables on Base before create_all
 from database import Base
-from models import KTProgram, KnowledgePackage, Participant
-from services.agents.kase import score_and_persist_readiness
 from services.core.claude_client import ClaudeClient
-from services.coverage.gap_governance import GapGovernanceState
-from services.orchestration.workflow_runner import WorkflowRunner
-from services.readiness.kar_adapter import adapt_kar_to_gates
-
-from services.demo.hierarchical_fixtures import (
-    DEMO_KTTL_PROFILE_ID,
-    DEMO_PACKAGE_ID,
-    DEMO_PACKAGE_NAME,
-    DEMO_PROGRAM_ID,
-    DEMO_PROGRAM_NAME,
-    DEMO_TRANSCRIPT_FILENAME,
-    RECEIVER_NAMES,
-)
-from services.demo.hierarchical_gap_answers import get_interpretation_for_gap
-from services.demo.receiver_strategies import (
-    build_receiver_scenario_responses,
-    expected_golden_outcomes,
-    load_receiver_strategies,
-)
-
-ROLE_TIER = "Primary"
-
-
-def _get_or_create_program_and_package(session) -> tuple[KTProgram, KnowledgePackage]:
-    program = session.get(KTProgram, DEMO_PROGRAM_ID)
-    if program is None:
-        program = KTProgram(
-            id=DEMO_PROGRAM_ID, name=DEMO_PROGRAM_NAME,
-            description="Ravi -> Priya PBI dashboard handover, hierarchical replay-proof demo (pinned ids).",
-        )
-        session.add(program)
-        session.flush()
-
-    package = session.get(KnowledgePackage, DEMO_PACKAGE_ID)
-    if package is None:
-        package = KnowledgePackage(
-            id=DEMO_PACKAGE_ID, program_id=DEMO_PROGRAM_ID,
-            name=DEMO_PACKAGE_NAME, kttl_profile_id=DEMO_KTTL_PROFILE_ID,
-        )
-        session.add(package)
-        session.flush()
-    elif package.kttl_profile_id != DEMO_KTTL_PROFILE_ID:
-        package.kttl_profile_id = DEMO_KTTL_PROFILE_ID
-        session.flush()
-
-    return program, package
-
-
-def _get_or_create_participants(session) -> dict[str, Participant]:
-    participants = {}
-    for pid, name in RECEIVER_NAMES.items():
-        p = session.get(Participant, pid)
-        if p is None:
-            p = Participant(id=pid, program_id=DEMO_PROGRAM_ID, name=name, participant_type="Receiver")
-            session.add(p)
-            session.flush()
-        participants[pid] = p
-    return participants
+from services.demo.hierarchical_demo_orchestrator import HierarchicalDemoOrchestrator
+from services.demo.hierarchical_fixtures import RECEIVER_NAMES
+from services.demo.receiver_strategies import expected_golden_outcomes
 
 
 def main() -> None:
@@ -92,55 +38,28 @@ def main() -> None:
     Base.metadata.create_all(bind=engine)
     session = database.get_session_factory()()
 
-    program, package = _get_or_create_program_and_package(session)
-    participants = _get_or_create_participants(session)
-    session.commit()
-
     client = ClaudeClient(dev_mode=True, cache_enabled=True)
-    runner = WorkflowRunner(session, claude_client=client)
+    orchestrator = HierarchicalDemoOrchestrator(session, claude_client=client)
 
-    report: dict = {"program_id": program.id, "package_id": package.id}
+    state = orchestrator.get_demo_state()
+    report: dict = {"program_id": state.program_id, "package_id": state.package_id}
 
-    # -- Step 2: real hierarchical ingestion (idempotent) -------------------
-    # Resumable: if this package already has a persisted graph version
-    # (e.g. a prior run got this far before a later step failed), don't
-    # re-run ingest_hierarchical -- it would mint a redundant new
-    # version from identical content. Load the existing version's
-    # counts for the report instead.
-    from models import KnowledgeGraphVersion
-    from services.graph.graph_storage import load_graph_version
+    # -- Step 2: real hierarchical ingestion (idempotent) --------------------
+    was_ingested_already = state.stage != "START"
+    orchestrator.ingest_demo()
+    version_row = orchestrator._latest_graph_version(state.package_id)
+    report["ingest"] = {
+        "graph_version": version_row.version_number,
+        "node_count": version_row.node_count,
+        "relationship_count": version_row.relationship_count,
+        "skipped_reingest": was_ingested_already,
+    }
+    tag = "SKIPPED (already ingested)" if was_ingested_already else ""
+    print(f"[ingest_hierarchical] {tag} graph_version={report['ingest']['graph_version']} "
+          f"nodes={report['ingest']['node_count']} relationships={report['ingest']['relationship_count']}")
 
-    existing_version_row = (
-        session.query(KnowledgeGraphVersion)
-        .filter_by(package_id=package.id)
-        .order_by(KnowledgeGraphVersion.version_number.desc())
-        .first()
-    )
-    if existing_version_row is None:
-        with open(DEMO_TRANSCRIPT_FILENAME, "rb") as f:
-            content = f.read()
-        kai_result = runner.ingest_hierarchical(package.id, DEMO_TRANSCRIPT_FILENAME, content)
-        session.commit()
-        report["ingest"] = {
-            "graph_version": kai_result.graph_version.version_number,
-            "node_count": kai_result.graph_payload.node_count,
-            "relationship_count": len(kai_result.graph_payload.relationships),
-        }
-        print(f"[ingest_hierarchical] graph_version={report['ingest']['graph_version']} "
-              f"nodes={report['ingest']['node_count']} relationships={report['ingest']['relationship_count']}")
-    else:
-        payload = load_graph_version(session, package.id, version=existing_version_row.version_number)
-        report["ingest"] = {
-            "graph_version": existing_version_row.version_number,
-            "node_count": payload.node_count,
-            "relationship_count": len(payload.relationships),
-            "skipped_reingest": True,
-        }
-        print(f"[ingest_hierarchical] SKIPPED (already ingested) graph_version={report['ingest']['graph_version']} "
-              f"nodes={report['ingest']['node_count']} relationships={report['ingest']['relationship_count']}")
-
-    # -- Step 3: real initial validation ------------------------------------
-    kar_initial = runner.validate_hierarchical(package.id, persist=False)
+    # -- Step 3: real initial validation --------------------------------------
+    kar_initial = orchestrator.validate_demo()
     report["initial_kar"] = {
         "tc": kar_initial.tc, "ac": kar_initial.ac, "rc": kar_initial.rc,
         "os": kar_initial.os, "ev": kar_initial.ev,
@@ -153,8 +72,8 @@ def main() -> None:
     }
     print(f"[initial validate_hierarchical] {json.dumps(report['initial_kar'], indent=2)}")
 
-    # -- Step 6: real fixture-driven closure loop ---------------------------
-    closure = runner.run_hierarchical_closure(package.id, get_interpretation_for_gap)
+    # -- Steps 6/7: real fixture-driven closure loop + persist + final KAR ---
+    closure = orchestrator.advance_enrichment(max_rounds=50)
     report["closure"] = {
         "termination_reason": closure.termination_reason,
         "rounds": len(closure.rounds),
@@ -182,22 +101,11 @@ def main() -> None:
     print(f"[closure] termination_reason={closure.termination_reason} rounds={len(closure.rounds)} "
           f"final_open_gaps={len(closure.final_knowledge_gaps)}")
 
-    # Persist the closed graph as a new version so validate_hierarchical/
-    # generate_assessment operate on it going forward.
-    from services.graph.graph_storage import save_graph_version
+    state = orchestrator.get_demo_state()
+    report["closed_graph_version"] = state.graph_version_number
+    print(f"[closure] persisted as graph_version={state.graph_version_number}")
 
-    new_version, _new_payload = save_graph_version(
-        session, package.id, closure.objects, closure.relationships,
-        change_summary=f"Hierarchical closure loop: {len(closure.rounds)} round(s), "
-                       f"termination_reason={closure.termination_reason!r}.",
-    )
-    session.commit()
-    report["closed_graph_version"] = new_version.version_number
-    print(f"[closure] persisted as graph_version={new_version.version_number}")
-
-    # -- Step 7: real KAR from the closed graph ------------------------------
-    kar_final = runner.validate_hierarchical(package.id, persist=True)
-    session.commit()
+    kar_final = orchestrator.complete_assurance()
     report["final_kar"] = {
         "tc": kar_final.tc, "ac": kar_final.ac, "rc": kar_final.rc,
         "os": kar_final.os, "ev": kar_final.ev,
@@ -210,49 +118,29 @@ def main() -> None:
     }
     print(f"[final KAR] {json.dumps(report['final_kar'], indent=2)}")
 
-    # -- Step 8: real KASE scenario generation -------------------------------
-    # use_cache=False: the scenario-package cache is keyed on
-    # (package_id, graph_version) only, not on scenario_generation.py's
-    # code -- a code change (e.g. the competency-coverage correction,
-    # issue_log.md #14) would otherwise be silently masked by a stale
-    # on-disk cache entry from an earlier run against the same graph
-    # version. This script's entire purpose is proving current code
-    # behavior, so it always regenerates fresh.
-    package_dict, package_row = runner.generate_assessment(package.id, use_cache=False)
-    session.commit()
-    scenario_competencies = sorted({
-        c for s in package_row.scenarios for c in json.loads(s.competency_mapping_json or "[]")
-    })
-    report["scenario_generation"] = {
-        "scenario_count": len(package_row.scenarios),
-        "competencies_exercised": scenario_competencies,
-    }
-    print(f"[generate_assessment] scenarios={len(package_row.scenarios)} "
-          f"competencies_exercised={scenario_competencies}")
-
-    # -- Step 9/10: real KASE + real KRA for all 3 receivers -----------------
-    kar_gates = adapt_kar_to_gates(kar_final)
-    coverage_result_stub = SimpleNamespace(sufficiency_gate_passed=kar_gates.coverage_gate_passed)
-    gap_states = [
-        GapGovernanceState(gap_id=g.gap_id, status=g.status, waiver_tier=None)
-        for g in kar_final.critical_unresolved_gaps
-    ]
-
-    strategies = load_receiver_strategies()
+    # -- Steps 8/9/10: real KASE scenario generation + KASE/KRA per receiver -
     golden_expected = expected_golden_outcomes()
     receiver_results = {}
+    scenario_count = None
+    scenario_competencies = None
 
-    for participant_id, strategy in strategies.items():
-        pairs = build_receiver_scenario_responses(session, package_row.scenarios, participant_id, strategy)
-        session.commit()
-        rollup = score_and_persist_readiness(
-            session, package_id=package.id, participant_id=participant_id, role_tier=ROLE_TIER,
-            scenario_responses=pairs, gaps=gap_states, coverage_result=coverage_result_stub,
-        )
-        session.commit()
+    for participant_id in RECEIVER_NAMES:
+        rollup = orchestrator.assess_receiver(participant_id)
+        if scenario_count is None:
+            package_row = orchestrator._get_or_create_assessment_package(state.package_id)
+            scenario_count = len(package_row.scenarios)
+            scenario_competencies = sorted({
+                c for s in package_row.scenarios for c in json.loads(s.competency_mapping_json or "[]")
+            })
+            report["scenario_generation"] = {
+                "scenario_count": scenario_count,
+                "competencies_exercised": scenario_competencies,
+            }
+            print(f"[generate_assessment] scenarios={scenario_count} "
+                  f"competencies_exercised={scenario_competencies}")
+
         receiver_results[participant_id] = {
             "name": RECEIVER_NAMES[participant_id],
-            "scenarios_presented": len(pairs),
             "competency_scores": rollup.scoring_result.competency_scores,
             "pillar_scores": rollup.scoring_result.pillar_scores,
             "ois_score": rollup.scoring_result.ois_score,

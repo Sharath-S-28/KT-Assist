@@ -77,6 +77,7 @@ def create_app() -> FastAPI:
         assets,
         assurance_report,
         dashboard,
+        demo_hierarchical,
         explanation,
         gaps,
         graph,
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(gaps.router)
     app.include_router(assessment.router)
     app.include_router(hierarchical.router)
+    app.include_router(demo_hierarchical.router)
 
     return app
 

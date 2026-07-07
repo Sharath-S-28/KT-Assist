@@ -23,6 +23,7 @@ from models.scoring import (
 )
 from models.readiness import ReceiverReadiness
 from models.workflow import WorkflowTransitionLog
+from models.demo_journey import DemoJourneyState
 
 __all__ = [
     "KTProgram",
@@ -45,4 +46,5 @@ __all__ = [
     "OISResult",
     "ReceiverReadiness",
     "WorkflowTransitionLog",
+    "DemoJourneyState",
 ]
