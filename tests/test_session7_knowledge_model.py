@@ -153,3 +153,54 @@ def test_full_small_graph_with_all_object_types_validates():
     result = validate_graph(objects, relationships)
     assert isinstance(result, GraphValidationResult)
     assert result.valid, result.errors
+
+
+# -- validate_graph() additional-pair patch regression tests ---------------
+# Covers the fix for the bug documented in knowledge/issue_log.md #13:
+# validate_graph() previously checked only RELATIONSHIP_TYPE_RULES
+# (primary pair), never RELATIONSHIP_TYPE_RULES_ADDITIONAL, so it
+# silently rejected the hierarchical System -> Dependency DEPENDS_ON
+# pair even though it's a documented valid pair. Now routed through
+# is_valid_relationship_pair() (primary + additional).
+
+@pytest.mark.parametrize("relationship_type", config.RELATIONSHIP_TYPES)
+def test_all_legacy_primary_pairs_still_valid_after_patch(relationship_type):
+    """Every existing (legacy) primary pair must still validate exactly
+    as before -- this patch must be purely additive, never stricter."""
+    source_type, target_type = RELATIONSHIP_TYPE_RULES[relationship_type]
+    source = validate_object({"id": "s1", "object_type": source_type, "name": "S", "criticality": "Important"})
+    target = validate_object({"id": "t1", "object_type": target_type, "name": "T", "criticality": "Important"})
+    rel = validate_relationship({
+        "id": "r1", "relationship_type": relationship_type, "source_id": "s1", "target_id": "t1",
+    })
+    result = validate_graph([source, target], [rel])
+    assert result.valid, result.errors
+
+
+def test_hierarchical_system_depends_on_dependency_pair_is_accepted():
+    """The additional pair this patch exists to fix: System -> Dependency
+    via DEPENDS_ON, previously rejected by validate_graph() even though
+    RELATIONSHIP_TYPE_RULES_ADDITIONAL documents it as valid."""
+    system = validate_object({"id": "sys1", "object_type": "System", "name": "SAP BW", "criticality": "Critical"})
+    dependency = validate_object({"id": "dep1", "object_type": "Dependency", "name": "Revenue file path", "criticality": "Important"})
+    rel = validate_relationship({
+        "id": "r1", "relationship_type": "DEPENDS_ON", "source_id": "sys1", "target_id": "dep1",
+    })
+    result = validate_graph([system, dependency], [rel])
+    assert result.valid, result.errors
+
+
+def test_invalid_pair_not_in_primary_or_additional_still_rejected():
+    """A pair that is neither the primary pair nor a registered
+    additional pair must still be rejected -- the patch must not widen
+    acceptance beyond what RELATIONSHIP_TYPE_RULES_ADDITIONAL declares.
+    Process -> Dependency is not a valid endpoint pair for DEPENDS_ON
+    under either table."""
+    process = validate_object({"id": "p1", "object_type": "Process", "name": "P", "criticality": "Critical"})
+    dependency = validate_object({"id": "dep1", "object_type": "Dependency", "name": "D", "criticality": "Important"})
+    rel = validate_relationship({
+        "id": "r1", "relationship_type": "DEPENDS_ON", "source_id": "p1", "target_id": "dep1",
+    })
+    result = validate_graph([process, dependency], [rel])
+    assert not result.valid
+    assert any("DEPENDS_ON" in e for e in result.errors)

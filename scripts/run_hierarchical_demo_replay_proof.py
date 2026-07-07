@@ -97,19 +97,43 @@ def main() -> None:
 
     report: dict = {"program_id": program.id, "package_id": package.id}
 
-    # -- Step 2: real hierarchical ingestion -------------------------------
-    with open(DEMO_TRANSCRIPT_FILENAME, "rb") as f:
-        content = f.read()
+    # -- Step 2: real hierarchical ingestion (idempotent) -------------------
+    # Resumable: if this package already has a persisted graph version
+    # (e.g. a prior run got this far before a later step failed), don't
+    # re-run ingest_hierarchical -- it would mint a redundant new
+    # version from identical content. Load the existing version's
+    # counts for the report instead.
+    from models import KnowledgeGraphVersion
+    from services.graph.graph_storage import load_graph_version
 
-    kai_result = runner.ingest_hierarchical(package.id, DEMO_TRANSCRIPT_FILENAME, content)
-    session.commit()
-    report["ingest"] = {
-        "graph_version": kai_result.graph_version.version_number,
-        "node_count": kai_result.graph_payload.node_count,
-        "relationship_count": len(kai_result.graph_payload.relationships),
-    }
-    print(f"[ingest_hierarchical] graph_version={report['ingest']['graph_version']} "
-          f"nodes={report['ingest']['node_count']} relationships={report['ingest']['relationship_count']}")
+    existing_version_row = (
+        session.query(KnowledgeGraphVersion)
+        .filter_by(package_id=package.id)
+        .order_by(KnowledgeGraphVersion.version_number.desc())
+        .first()
+    )
+    if existing_version_row is None:
+        with open(DEMO_TRANSCRIPT_FILENAME, "rb") as f:
+            content = f.read()
+        kai_result = runner.ingest_hierarchical(package.id, DEMO_TRANSCRIPT_FILENAME, content)
+        session.commit()
+        report["ingest"] = {
+            "graph_version": kai_result.graph_version.version_number,
+            "node_count": kai_result.graph_payload.node_count,
+            "relationship_count": len(kai_result.graph_payload.relationships),
+        }
+        print(f"[ingest_hierarchical] graph_version={report['ingest']['graph_version']} "
+              f"nodes={report['ingest']['node_count']} relationships={report['ingest']['relationship_count']}")
+    else:
+        payload = load_graph_version(session, package.id, version=existing_version_row.version_number)
+        report["ingest"] = {
+            "graph_version": existing_version_row.version_number,
+            "node_count": payload.node_count,
+            "relationship_count": len(payload.relationships),
+            "skipped_reingest": True,
+        }
+        print(f"[ingest_hierarchical] SKIPPED (already ingested) graph_version={report['ingest']['graph_version']} "
+              f"nodes={report['ingest']['node_count']} relationships={report['ingest']['relationship_count']}")
 
     # -- Step 3: real initial validation ------------------------------------
     kar_initial = runner.validate_hierarchical(package.id, persist=False)
@@ -183,7 +207,14 @@ def main() -> None:
     print(f"[final KAR] {json.dumps(report['final_kar'], indent=2)}")
 
     # -- Step 8: real KASE scenario generation -------------------------------
-    package_dict, package_row = runner.generate_assessment(package.id)
+    # use_cache=False: the scenario-package cache is keyed on
+    # (package_id, graph_version) only, not on scenario_generation.py's
+    # code -- a code change (e.g. the competency-coverage correction,
+    # issue_log.md #14) would otherwise be silently masked by a stale
+    # on-disk cache entry from an earlier run against the same graph
+    # version. This script's entire purpose is proving current code
+    # behavior, so it always regenerates fresh.
+    package_dict, package_row = runner.generate_assessment(package.id, use_cache=False)
     session.commit()
     scenario_competencies = sorted({
         c for s in package_row.scenarios for c in json.loads(s.competency_mapping_json or "[]")

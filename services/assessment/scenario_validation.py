@@ -16,7 +16,8 @@ because the generator that produced it says so.
     recall (e.g. "Define X", "What is the capital of Y") rather than
     judgement, decision-making, or problem-solving.
   Layer 3 -- Independent Grounding Check: re-derives, from
-    config.OBJECT_TYPE_COMPETENCY_MAP alone (never from the scenario's
+    config.OBJECT_TYPE_COMPETENCY_MAP (+ OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL,
+    via config.competencies_for_object_type) alone -- never from the scenario's
     own competency_mapping field), which competencies a scenario of this
     type/relationship *should* legitimately carry, and rejects any
     scenario whose original (pre-padding) competencies aren't a subset
@@ -171,9 +172,11 @@ def layer2_anti_pattern(weighted: WeightedScenario) -> LayerResult:
 def _expected_competencies_for(type_label: str) -> set[str]:
     """Independently re-derive which competencies a scenario of this
     object/relationship type may legitimately carry, from
-    config.OBJECT_TYPE_COMPETENCY_MAP alone -- never from the scenario's
-    own competency_mapping field. Used to catch a generator defect
-    (mis-mapped competencies) without trusting the generator's output.
+    config.competencies_for_object_type (canonical OBJECT_TYPE_COMPETENCY_MAP
+    plus additive OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL) alone -- never
+    from the scenario's own competency_mapping field. Used to catch a
+    generator defect (mis-mapped competencies) without trusting the
+    generator's output.
 
     For a relationship type with more than one valid source/target pair
     (schemas.knowledge_graph.RELATIONSHIP_TYPE_RULES_ADDITIONAL), the
@@ -185,12 +188,12 @@ def _expected_competencies_for(type_label: str) -> set[str]:
     misclassified as ungrounded.
     """
     if type_label in config.KNOWLEDGE_OBJECT_TYPES:
-        return {config.OBJECT_TYPE_COMPETENCY_MAP[type_label]}
+        return set(config.competencies_for_object_type(type_label))
     if type_label in RELATIONSHIP_TYPE_RULES:
         expected = set()
         for source_type, target_type in all_valid_pairs_for(type_label):
-            expected.add(config.OBJECT_TYPE_COMPETENCY_MAP[source_type])
-            expected.add(config.OBJECT_TYPE_COMPETENCY_MAP[target_type])
+            expected.update(config.competencies_for_object_type(source_type))
+            expected.update(config.competencies_for_object_type(target_type))
         return expected
     return set()
 

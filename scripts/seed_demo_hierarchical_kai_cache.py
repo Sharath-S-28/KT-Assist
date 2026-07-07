@@ -12,14 +12,21 @@ the missing pilot-keyed cache entries.
 
 Does NOT duplicate the underlying object/relationship graph: imports
 OBJECTS_BY_CHUNK/RELATIONSHIPS/CONTENT_HASH directly from
-scripts/seed_demo_kai_cache.py and only (a) overlays
+scripts/seed_demo_kai_cache.py and only overlays
 services.demo.hierarchical_kai_attributes.PILOT_ATTRIBUTE_OVERLAY onto
-matching System/Known Issue/Task objects, and (b) appends
-SYSTEM_DEPENDS_ON_EDGES to the SAME data/cache/kai/{hash}:relationships.json
-file the legacy path also reads (relationship discovery's cache key
-does not fork on pilot mode -- see services/agents/kai_relationship_discovery.py's
-discover_relationships) -- additive only, never removing an existing edge,
-so the already-seeded legacy v1 DB checkpoint is unaffected.
+matching System/Known Issue/Task objects.
+
+NOTE (issue_log.md #13): this script previously also injected additive
+System -> Dependency DEPENDS_ON edges into the shared relationships
+cache. That has been REMOVED -- discover_relationships() only consults
+RELATIONSHIP_TYPE_RULES (primary), never RELATIONSHIP_TYPE_RULES_ADDITIONAL,
+so those edges were silently dropped during ingestion regardless of
+being seeded (62 seeded -> 56 persisted -> RC=0.0, confirmed
+empirically). The relationships cache written here is now just the
+legacy 56-edge set, unmodified. Each System's DEPENDS_ON gap is instead
+opened for real (RELATIONSHIP_GAP, rule_family "failure_recovery") and
+closed through the hierarchical closure loop -- see
+services/demo/hierarchical_gap_answers.py's _RELATIONSHIP_ANSWERS.
 """
 
 import copy
@@ -28,7 +35,7 @@ from pathlib import Path
 
 from scripts.seed_demo_kai_cache import CONTENT_HASH, OBJECTS_BY_CHUNK, RELATIONSHIPS
 from services.agents.kai_extraction import _chunk_cache_key
-from services.demo.hierarchical_kai_attributes import PILOT_ATTRIBUTE_OVERLAY, SYSTEM_DEPENDS_ON_EDGES
+from services.demo.hierarchical_kai_attributes import PILOT_ATTRIBUTE_OVERLAY
 
 KAI_CACHE_DIR = Path("data/cache/kai")
 PILOT_OBJECT_TYPES = {"System", "Known Issue", "Task"}
@@ -64,16 +71,14 @@ def main() -> None:
         print(f"chunk {chunk_index}: {len(overlaid)} objects "
               f"({sum(1 for o in overlaid if 'attributes' in o)} with pilot attributes) -> {path}")
 
-    # Extend (never replace) the shared relationships cache -- same key
-    # both legacy and hierarchical ingestion read.
+    # Write the shared relationships cache -- same key both legacy and
+    # hierarchical ingestion read. No System->Dependency edges injected
+    # here anymore (issue_log.md #13); those gaps close via the
+    # hierarchical closure loop instead.
     rel_cache_key = f"{CONTENT_HASH}:relationships"
     rel_path = _sanitized_cache_path(KAI_CACHE_DIR, rel_cache_key)
-    existing = json.loads(rel_path.read_text())["relationships"] if rel_path.exists() else list(RELATIONSHIPS)
-    existing_ids = {r["id"] for r in existing}
-    added = [r for r in SYSTEM_DEPENDS_ON_EDGES if r["id"] not in existing_ids]
-    combined = existing + added
-    rel_path.write_text(json.dumps({"relationships": combined}, indent=2))
-    print(f"relationships: {len(existing)} existing + {len(added)} added System->Dependency = {len(combined)} -> {rel_path}")
+    rel_path.write_text(json.dumps({"relationships": list(RELATIONSHIPS)}, indent=2))
+    print(f"relationships: {len(RELATIONSHIPS)} (legacy set, unmodified) -> {rel_path}")
 
     print(f"content_hash: {CONTENT_HASH}")
     print(f"total pilot-cache objects: {total_objects} ({total_with_attributes} carrying pilot attributes)")

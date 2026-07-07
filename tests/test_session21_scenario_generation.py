@@ -61,8 +61,8 @@ def test_each_object_type_yields_a_scenario_with_all_six_fields(object_type):
     )
     assert "Widget" in full_text
 
-    # Competency mapping matches the locked object-type -> competency map.
-    assert scenario.competency_mapping == [config.OBJECT_TYPE_COMPETENCY_MAP[object_type]]
+    # Competency mapping matches canonical + additive object-type -> competency map.
+    assert scenario.competency_mapping == config.competencies_for_object_type(object_type)
 
 
 def test_object_scenario_rejects_unrecognized_object_type():
@@ -116,12 +116,10 @@ def test_each_relationship_type_yields_a_relationship_aware_scenario(relationshi
     assert "SourceThing" in full_text
     assert "TargetThing" in full_text
 
-    # Competency mapping draws from both endpoints' competencies.
+    # Competency mapping draws from both endpoints' canonical+additive competencies.
     expected = sorted(
-        {
-            config.OBJECT_TYPE_COMPETENCY_MAP[source_type],
-            config.OBJECT_TYPE_COMPETENCY_MAP[target_type],
-        }
+        set(config.competencies_for_object_type(source_type))
+        | set(config.competencies_for_object_type(target_type))
     )
     assert scenario.competency_mapping == expected
 

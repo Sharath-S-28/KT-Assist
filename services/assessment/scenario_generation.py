@@ -66,12 +66,11 @@ def generate_object_scenario(node: KnowledgeObject) -> GeneratedScenario:
         )
     template = config.SCENARIO_OBJECT_TEMPLATES[node.object_type]
     rendered = _format_template(template, name=node.name)
-    competency = config.OBJECT_TYPE_COMPETENCY_MAP[node.object_type]
     return GeneratedScenario(
         source_kind="object",
         source_id=node.id,
         type_label=node.object_type,
-        competency_mapping=[competency],
+        competency_mapping=config.competencies_for_object_type(node.object_type),
         **rendered,
     )
 
@@ -119,10 +118,8 @@ def generate_relationship_scenario(
     )
 
     competency_mapping = sorted(
-        {
-            config.OBJECT_TYPE_COMPETENCY_MAP[source_node.object_type],
-            config.OBJECT_TYPE_COMPETENCY_MAP[target_node.object_type],
-        }
+        set(config.competencies_for_object_type(source_node.object_type))
+        | set(config.competencies_for_object_type(target_node.object_type))
     )
     return GeneratedScenario(
         source_kind="relationship",

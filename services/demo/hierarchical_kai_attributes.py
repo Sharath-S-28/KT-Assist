@@ -404,17 +404,14 @@ PILOT_ATTRIBUTE_OVERLAY: dict[str, dict[str, dict]] = {
     **TASK_ATTRIBUTES,
 }
 
-# Additive DEPENDS_ON edges (System -> Dependency; valid per
-# schemas.knowledge_graph.RELATIONSHIP_TYPE_RULES_ADDITIONAL). Grounded
-# in facts already stated elsewhere in the same transcript-derived
-# object set (e.g. dep-pbi-version's own description already ties the
-# October 2024+ requirement to the Revenue dashboard's refresh via
-# Power BI Desktop/Service).
-SYSTEM_DEPENDS_ON_EDGES: list[dict] = [
-    {"id": "rel-do-sys-1", "relationship_type": "DEPENDS_ON", "source_id": "sys-sap-bw", "target_id": "dep-rev-path", "confidence": 0.8},
-    {"id": "rel-do-sys-2", "relationship_type": "DEPENDS_ON", "source_id": "sys-sap-mm", "target_id": "dep-inv-path", "confidence": 0.8},
-    {"id": "rel-do-sys-3", "relationship_type": "DEPENDS_ON", "source_id": "sys-salesforce", "target_id": "dep-ret-path", "confidence": 0.8},
-    {"id": "rel-do-sys-4", "relationship_type": "DEPENDS_ON", "source_id": "sys-pbi-desktop", "target_id": "dep-pbi-version", "confidence": 0.85},
-    {"id": "rel-do-sys-5", "relationship_type": "DEPENDS_ON", "source_id": "sys-pbi-service", "target_id": "dep-pbi-version", "confidence": 0.75},
-    {"id": "rel-do-sys-6", "relationship_type": "DEPENDS_ON", "source_id": "sys-sharepoint", "target_id": "dep-pbi-version", "confidence": 0.7},
-]
+# REMOVED (issue_log.md #13): System -> Dependency DEPENDS_ON edges are
+# no longer pre-seeded here. discover_relationships() only consults
+# RELATIONSHIP_TYPE_RULES (primary), never RELATIONSHIP_TYPE_RULES_ADDITIONAL,
+# so these were silently rejected at ingestion despite being valid per
+# scoring/RC. Each System now starts with an open RELATIONSHIP_GAP
+# (rule_family "failure_recovery") and closes it for real through the
+# hierarchical closure loop -- see
+# services/demo/hierarchical_gap_answers.py's _RELATIONSHIP_ANSWERS,
+# which uses InterpretedRelationshipChange via apply_interpreted_changes()
+# (confirmed no type-pair check on that path). The bug itself is
+# unfixed and reported separately.

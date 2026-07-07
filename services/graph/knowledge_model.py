@@ -11,7 +11,9 @@ KGF rules:
      one of the eight mandatory types (config.RELATIONSHIP_TYPES).
   2. Every relationship's endpoints exist among the supplied objects.
   3. Every relationship connects object types consistent with
-     schemas.knowledge_graph.RELATIONSHIP_TYPE_RULES.
+     schemas.knowledge_graph.RELATIONSHIP_TYPE_RULES (primary pair) or
+     RELATIONSHIP_TYPE_RULES_ADDITIONAL (additional valid pairs, e.g.
+     System -> Dependency for DEPENDS_ON), via is_valid_relationship_pair().
   4. Granularity rule: a Process decomposes into Tasks via HAS_TASK; a
      Task is a leaf in that decomposition — it may never be the source
      of another HAS_TASK edge (no individual UI steps as objects).
@@ -25,7 +27,7 @@ from dataclasses import dataclass, field
 
 from pydantic import ValidationError
 
-from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, KnowledgeObject, Relationship
+from schemas.knowledge_graph import RELATIONSHIP_TYPE_RULES, KnowledgeObject, Relationship, is_valid_relationship_pair
 from utils.errors import ValidationFailedError
 
 
@@ -77,8 +79,8 @@ def validate_graph(objects: list[KnowledgeObject], relationships: list[Relations
             errors.append(f"Relationship {rel.id}: target_id {rel.target_id!r} not found among objects.")
             continue
 
-        expected_source_type, expected_target_type = RELATIONSHIP_TYPE_RULES[rel.relationship_type]
-        if source.object_type != expected_source_type or target.object_type != expected_target_type:
+        if not is_valid_relationship_pair(rel.relationship_type, source.object_type, target.object_type):
+            expected_source_type, expected_target_type = RELATIONSHIP_TYPE_RULES[rel.relationship_type]
             errors.append(
                 f"Relationship {rel.id} ({rel.relationship_type}) must connect "
                 f"{expected_source_type} -> {expected_target_type}, but got "

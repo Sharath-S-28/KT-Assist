@@ -38,10 +38,52 @@ from typing import Optional
 
 from schemas.gap_model import KnowledgeGap
 from schemas.knowledge_graph import KnowledgeObject
-from services.assessment.response_interpretation import InterpretationResult
+from services.assessment.response_interpretation import InterpretationResult, InterpretedRelationshipChange
 from services.coverage.enrichment_coordinator import build_interpretation_from_evidence_confirmation
 
 _TRANSCRIPT_EVIDENCE_REF = "KCTA_KT_Transcript_PBI_Dashboards.docx (KT session transcript)"
+
+# {system_object_id: (relationship_type, target_dependency_name, raw_text)}
+#
+# RELATIONSHIP_GAP closure answers (rule_family "failure_recovery" --
+# config/ontology.py's System.rule_family_map["DEPENDS_ON"]). These
+# replace the SYSTEM_DEPENDS_ON_EDGES that used to be pre-seeded via
+# the KAI cache (issue_log.md #13): discover_relationships() only
+# checks RELATIONSHIP_TYPE_RULES (primary), never
+# RELATIONSHIP_TYPE_RULES_ADDITIONAL, so pre-seeded System->Dependency
+# edges were silently rejected at ingestion. Routing the same edges
+# through InterpretedRelationshipChange/apply_interpreted_changes()
+# instead avoids that code path entirely (confirmed: relationship
+# creation there is a by-name existence check only, no type-pair
+# check) -- so each System now starts with a genuine open
+# RELATIONSHIP_GAP and closes it for real during closure, rather than
+# arriving pre-closed.
+_RELATIONSHIP_ANSWERS: dict[str, tuple[str, str, str]] = {
+    "sys-sap-bw": (
+        "DEPENDS_ON", "Hardcoded Revenue File Path",
+        "Confirmed: SAP BW's Revenue extract depends on the hardcoded file path Ravi described.",
+    ),
+    "sys-sap-mm": (
+        "DEPENDS_ON", "Hardcoded Inventory File Path",
+        "Confirmed: SAP MM Module's Inventory extract depends on the hardcoded file path Ravi described.",
+    ),
+    "sys-salesforce": (
+        "DEPENDS_ON", "Hardcoded Returns File Path",
+        "Confirmed: Salesforce CRM's Returns extract depends on the hardcoded file path Ravi described.",
+    ),
+    "sys-pbi-desktop": (
+        "DEPENDS_ON", "Power BI Desktop October 2024+ Requirement",
+        "Confirmed: Power BI Desktop's refresh depends on the October 2024+ version requirement Ravi flagged.",
+    ),
+    "sys-pbi-service": (
+        "DEPENDS_ON", "Power BI Desktop October 2024+ Requirement",
+        "Confirmed: Power BI Service's refresh depends on the same October 2024+ version requirement.",
+    ),
+    "sys-sharepoint": (
+        "DEPENDS_ON", "Power BI Desktop October 2024+ Requirement",
+        "Confirmed: SharePoint (Finance Site)'s data feed depends on the same version requirement.",
+    ),
+}
 
 # {(object_id, rule_family): (validation_status, evidence_refs, raw_text)}
 _EVIDENCE_ANSWERS: dict[tuple[str, str], tuple[str, list[str], str]] = {
@@ -94,27 +136,60 @@ def gap_signature(gap: KnowledgeGap) -> tuple[Optional[str], str]:
     return (gap.object_id, gap.rule_family)
 
 
+def _build_relationship_closure(
+    gap: KnowledgeGap, objects_by_id: dict[str, KnowledgeObject]
+) -> InterpretationResult:
+    """RELATIONSHIP_GAP counterpart to build_interpretation_from_evidence_confirmation.
+    No equivalent builder exists in enrichment_coordinator.py, so this
+    constructs the InterpretationResult directly -- object_changes
+    empty, one InterpretedRelationshipChange naming source/target by
+    NAME (apply_interpreted_changes()'s relationship-creation path
+    matches by name, not id)."""
+    existing = objects_by_id[gap.object_id]
+    rel_type, target_name, raw_text = _RELATIONSHIP_ANSWERS[gap.object_id]
+    return InterpretationResult(
+        gap_object_type=existing.object_type,
+        raw_text=raw_text,
+        object_changes=[],
+        relationship_changes=[
+            InterpretedRelationshipChange(
+                action="create",
+                relationship_type=rel_type,
+                source_name=existing.name,
+                target_name=target_name,
+            )
+        ],
+    )
+
+
 def get_interpretation_for_gap(
     gap: KnowledgeGap, objects_by_id: dict[str, KnowledgeObject]
 ) -> Optional[InterpretationResult]:
     """The demo's get_interpretation_for_gap callback for
     run_hierarchical_closure_loop. Looks up gap_signature(gap) in the
-    fixture table above; raises UnknownGapSignatureError (not KeyError
-    swallowed into a fabricated default) for anything unrecognized."""
+    evidence-confirmation table, then the relationship-closure table;
+    raises UnknownGapSignatureError (not KeyError swallowed into a
+    fabricated default) for anything recognized by neither."""
     sig = gap_signature(gap)
-    if sig not in _EVIDENCE_ANSWERS:
-        raise UnknownGapSignatureError(
-            f"No fixture answer registered for gap signature {sig!r} "
-            f"(gap_id={gap.gap_id!r}, findings={[f.gap_type for f in gap.findings]!r}). "
-            "This demo fixture never fabricates an answer for an unrecognized gap."
+    if sig in _EVIDENCE_ANSWERS:
+        validation_status, evidence_refs, raw_text = _EVIDENCE_ANSWERS[sig]
+        return build_interpretation_from_evidence_confirmation(
+            gap, raw_text, validation_status, evidence_refs, objects_by_id,
         )
-    validation_status, evidence_refs, raw_text = _EVIDENCE_ANSWERS[sig]
-    return build_interpretation_from_evidence_confirmation(
-        gap, raw_text, validation_status, evidence_refs, objects_by_id,
+    if gap.rule_family == "failure_recovery" and gap.object_id in _RELATIONSHIP_ANSWERS:
+        return _build_relationship_closure(gap, objects_by_id)
+    raise UnknownGapSignatureError(
+        f"No fixture answer registered for gap signature {sig!r} "
+        f"(gap_id={gap.gap_id!r}, findings={[f.gap_type for f in gap.findings]!r}). "
+        "This demo fixture never fabricates an answer for an unrecognized gap."
     )
 
 
 def registered_signatures() -> list[tuple[Optional[str], str]]:
     """All signatures this fixture can answer -- used by tests to
-    assert the fixture table's shape without duplicating its content."""
-    return list(_EVIDENCE_ANSWERS.keys())
+    assert the fixture table's shape without duplicating its content.
+    Includes both evidence-confirmation and relationship-closure
+    answers."""
+    evidence_sigs = list(_EVIDENCE_ANSWERS.keys())
+    relationship_sigs = [(object_id, "failure_recovery") for object_id in _RELATIONSHIP_ANSWERS]
+    return evidence_sigs + relationship_sigs

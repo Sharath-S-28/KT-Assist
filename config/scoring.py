@@ -96,6 +96,47 @@ OBJECT_TYPE_COMPETENCY_MAP = {
 assert set(OBJECT_TYPE_COMPETENCY_MAP) == set(KNOWLEDGE_OBJECT_TYPES)
 assert set(OBJECT_TYPE_COMPETENCY_MAP.values()) <= set(COMPETENCY_CATALOG)
 
+# Additive secondary competency map (issue_log.md #14). The canonical
+# 1:1 map above is left completely unchanged -- every existing
+# consumer that reads OBJECT_TYPE_COMPETENCY_MAP[type] directly (e.g.
+# scenario_validation.py's Layer 3 grounding check, before its own
+# patch below) keeps seeing exactly the same single value. This is
+# for legitimate additional competency associations the canonical map
+# was never extended to cover, even though real graph content and/or
+# the frozen spec supports them:
+#   - Known Issue objects carry structured trigger/impact/
+#     detection_method/resolution_path content that maps directly to
+#     the OIF's Problem Solving evidence markers (PS-01..PS-06).
+#   - The frozen spec (Chunk 5/SGF "Knowledge Object Mapping" table)
+#     explicitly states Escalation objects generate "Communication
+#     Scenarios" in addition to Escalation Scenarios; Escalation
+#     objects' real content (who to contact, how) supports it.
+# Same additive pattern as schemas.knowledge_graph's
+# RELATIONSHIP_TYPE_RULES_ADDITIONAL / is_valid_relationship_pair().
+OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL: dict[str, list[str]] = {
+    "Known Issue": ["problem_solving"],
+    "Escalation": ["communication"],
+}
+
+assert set(OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL) <= set(KNOWLEDGE_OBJECT_TYPES)
+assert all(
+    c in COMPETENCY_CATALOG for extras in OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL.values() for c in extras
+)
+
+
+def competencies_for_object_type(object_type: str) -> list[str]:
+    """Canonical competency (OBJECT_TYPE_COMPETENCY_MAP) plus any
+    additive ones (OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL) for this
+    object type -- canonical first, no duplicates, deterministic
+    order. The single call every consumer should use instead of
+    reading OBJECT_TYPE_COMPETENCY_MAP[object_type] directly when it
+    wants the full legitimate competency set for that type."""
+    result = [OBJECT_TYPE_COMPETENCY_MAP[object_type]]
+    for extra in OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL.get(object_type, []):
+        if extra not in result:
+            result.append(extra)
+    return result
+
 # ── Evidence Marker Library (EML) ─────────────────────────────────────────────
 
 EVIDENCE_SCORES = {
