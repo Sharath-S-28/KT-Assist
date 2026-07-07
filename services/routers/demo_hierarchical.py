@@ -165,3 +165,10 @@ def get_closure_history(db: Session = Depends(get_db)) -> dict:
 def get_traceability_example(db: Session = Depends(get_db)) -> dict:
     example = _orchestrator(db).get_traceability_example()
     return {"example": example}
+
+
+# -- UI Phase 3 addition (issue_log #20) ------------------------------------
+
+@router.get("/receivers/{participant_id}/assessment-detail")
+def get_receiver_assessment_detail(participant_id: str, db: Session = Depends(get_db)) -> dict:
+    return _orchestrator(db).get_receiver_assessment_detail(participant_id)

@@ -447,6 +447,9 @@ class ApiClient:
     def get_demo_traceability_example(self) -> dict:
         return self._get("/api/demo/hierarchical/traceability-example").json()
 
+    def get_demo_receiver_assessment_detail(self, participant_id: str) -> dict:
+        return self._get(f"/api/demo/hierarchical/receivers/{participant_id}/assessment-detail").json()
+
 
 _default_client: Optional[ApiClient] = None
 

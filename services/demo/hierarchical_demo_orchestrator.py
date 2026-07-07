@@ -724,9 +724,18 @@ class HierarchicalDemoOrchestrator:
     def _rollup_from_existing_readiness(self, readiness: ReceiverReadiness) -> ReadinessRollup:
         """Reconstruct a ReadinessRollup-shaped view from the already-
         persisted rows, for the idempotent re-call path (never
-        recomputes -- just reads back what's already there)."""
-        from services.readiness.threshold_model import ThresholdResolution
+        recomputes scoring -- just reads back what's already there).
+        threshold_resolution IS regenerated via the real
+        resolve_readiness(), not stored: effective_threshold/
+        boundary_zone_applied are pure functions of
+        (ois_score, role_tier, critical_gate_passed) -- calling the
+        same real function again to reproduce the same deterministic
+        result is not duplicating scoring logic, it's re-deriving a
+        value that was never persisted in the first place (only the
+        final decision/certification_level were, on ReceiverReadiness
+        itself)."""
         from services.agents.kase_scoring import ScoringResult
+        from services.readiness.threshold_model import resolve_readiness
 
         ois_row = self.db.get(OISResult, readiness.ois_result_id) if readiness.ois_result_id else None
         competency_rows = self.db.query(CompetencyResult).filter_by(
@@ -744,14 +753,13 @@ class HierarchicalDemoOrchestrator:
             verification_passed=ois_row.verification_passed if ois_row else False,
             critical_competencies_below_gate=below_gate,
         )
-        threshold_resolution = ThresholdResolution(
-            role_tier=readiness.role_tier,
-            ois_score=ois_row.ois_score if ois_row else 0.0,
-            effective_threshold=0,
-            critical_gate_passed=readiness.critical_competency_gate_passed,
-            decision=readiness.final_decision,
-            certification_level=readiness.certification_level,
-            boundary_zone_applied=(readiness.final_decision == "Conditionally Ready"),
+        all_gates_passed = (
+            readiness.critical_competency_gate_passed
+            and readiness.coverage_gate_passed
+            and readiness.open_gap_gate_passed
+        )
+        threshold_resolution = resolve_readiness(
+            ois_row.ois_score if ois_row else 0.0, readiness.role_tier, critical_gate_passed=all_gates_passed,
         )
         return ReadinessRollup(
             scoring_result=scoring_result, threshold_resolution=threshold_resolution,
@@ -762,7 +770,133 @@ class HierarchicalDemoOrchestrator:
             receiver_readiness_id=readiness.id,
         )
 
-    # -- get_demo_summary ----------------------------------------------------
+    def get_receiver_assessment_detail(self, participant_id: str) -> dict[str, Any]:
+        """Real per-receiver assessment detail for UI Phase 3 (issue_log
+        #20): scenario/response/evidence facts already persisted by
+        score_and_persist_readiness (EvidenceMarkerResult/CompetencyResult/
+        PillarResult/OISResult/ReceiverReadiness), plus a small, fully
+        deterministic representative-interaction selection over the real
+        per-scenario detection results. No scoring/aggregation logic is
+        reimplemented here -- competency/pillar/OIS/gate/decision values
+        are read back exactly as score_and_persist_readiness computed
+        them; the only new computation is which few scenarios to
+        highlight, done here in pure Python string/id sorting."""
+        program, package = self._get_or_create_program_and_package()
+        readiness = (
+            self.db.query(ReceiverReadiness)
+            .filter_by(package_id=package.id, participant_id=participant_id)
+            .first()
+        )
+
+        current_version = self._latest_graph_version(package.id)
+        package_row = None
+        if current_version is not None:
+            existing = (
+                self.db.query(AssessmentPackage)
+                .filter_by(package_id=package.id, graph_version_id=current_version.id)
+                .order_by(AssessmentPackage.created_at.desc())
+                .first()
+            )
+            package_row = existing
+
+        result: dict[str, Any] = {
+            "participant_id": participant_id,
+            "status": "assessed" if readiness is not None else "not_assessed",
+            "scenario_count": len(package_row.scenarios) if package_row else 0,
+            "categories": sorted({s.category for s in package_row.scenarios}) if package_row else [],
+            "competencies_exercised": [],
+            "representative_interactions": [],
+            "competency_scores": {},
+            "pillar_scores": {},
+            "ois_score": None,
+            "critical_competency_gate_passed": None,
+            "coverage_gate_passed": None,
+            "open_gap_gate_passed": None,
+            "final_decision": None,
+            "certification_level": None,
+            "role_tier": None,
+            "effective_threshold": None,
+            "boundary_zone_applied": None,
+        }
+        if package_row:
+            competencies = set()
+            for s in package_row.scenarios:
+                competencies.update(json.loads(s.competency_mapping_json or "[]"))
+            result["competencies_exercised"] = sorted(competencies)
+
+        if readiness is None:
+            return result
+
+        rollup = self._rollup_from_existing_readiness(readiness)
+        result["competency_scores"] = rollup.scoring_result.competency_scores
+        result["pillar_scores"] = rollup.scoring_result.pillar_scores
+        result["ois_score"] = rollup.scoring_result.ois_score
+        result["critical_competency_gate_passed"] = rollup.scoring_result.critical_competency_gate_passed
+        result["coverage_gate_passed"] = rollup.coverage_gate_passed
+        result["open_gap_gate_passed"] = rollup.open_gap_gate_passed
+        result["final_decision"] = rollup.threshold_resolution.decision
+        result["certification_level"] = rollup.threshold_resolution.certification_level
+        result["role_tier"] = rollup.threshold_resolution.role_tier
+        result["effective_threshold"] = rollup.threshold_resolution.effective_threshold
+        result["boundary_zone_applied"] = rollup.threshold_resolution.boundary_zone_applied
+
+        if package_row is None:
+            return result
+
+        responses = (
+            self.db.query(ScenarioResponse).filter_by(participant_id=participant_id).all()
+        )
+        scenarios_by_id = {s.id: s for s in package_row.scenarios}
+        responses_by_scenario_id = {r.scenario_id: r for r in responses if r.scenario_id in scenarios_by_id}
+
+        interaction_candidates = []
+        for scenario_id, response in responses_by_scenario_id.items():
+            scenario = scenarios_by_id[scenario_id]
+            markers = (
+                self.db.query(EvidenceMarkerResult).filter_by(scenario_response_id=response.id).all()
+            )
+            statuses = [m.detection_status for m in markers]
+            if not statuses:
+                continue
+            if all(s == "Demonstrated" for s in statuses):
+                overall = "Demonstrated"
+            elif any(s == "Missing" for s in statuses):
+                overall = "Weak"
+            else:
+                overall = "Partial"
+            interaction_candidates.append({
+                "scenario_id": scenario_id,
+                "situation": scenario.situation,
+                "trigger": scenario.trigger,
+                "decision_point": scenario.decision_point,
+                "category": scenario.category,
+                "response_text": response.response_text,
+                "overall_status": overall,
+                "marker_statuses": statuses,
+                "competency_mapping": json.loads(scenario.competency_mapping_json or "[]"),
+            })
+
+        # Deterministic representative selection: every non-"Demonstrated"
+        # interaction first (up to 3, sorted by scenario_id for stability --
+        # this is exactly where Receiver B's real scenario-level evidence
+        # variation surfaces), then enough "Demonstrated" ones to reach 6,
+        # preferring distinct competencies not already shown.
+        interaction_candidates.sort(key=lambda c: c["scenario_id"])
+        not_demonstrated = [c for c in interaction_candidates if c["overall_status"] != "Demonstrated"][:3]
+        shown_competencies = {c for entry in not_demonstrated for c in entry["competency_mapping"]}
+        demonstrated = [c for c in interaction_candidates if c["overall_status"] == "Demonstrated"]
+
+        filler = []
+        for entry in demonstrated:
+            new_competencies = set(entry["competency_mapping"]) - shown_competencies
+            if new_competencies or len(filler) < (6 - len(not_demonstrated)):
+                filler.append(entry)
+                shown_competencies.update(entry["competency_mapping"])
+            if len(not_demonstrated) + len(filler) >= 6:
+                break
+
+        result["representative_interactions"] = not_demonstrated + filler[: max(0, 6 - len(not_demonstrated))]
+        return result
 
     def get_demo_summary(self) -> dict[str, Any]:
         """Read-only aggregation of real, already-persisted/computed

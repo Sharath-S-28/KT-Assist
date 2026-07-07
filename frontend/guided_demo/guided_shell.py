@@ -21,7 +21,7 @@ already-proven checkpoints the offline replay proof exercises.
 import streamlit as st
 
 from frontend.api_client import ApiClient, ApiError
-from frontend.guided_demo import lifecycle_scenes, portfolio_fixture as pf
+from frontend.guided_demo import lifecycle_scenes, portfolio_fixture as pf, receiver_scenes
 from frontend.theme import MUTED, badge_html, decision_color, inject_global_css
 
 # Conceptual 7-stage narrative (task spec) mapped onto the real 6
@@ -196,15 +196,26 @@ def render(client: ApiClient) -> None:
     with tabs[4]:
         lifecycle_scenes.render_assurance_result(client, summary)
     with tabs[5]:
-        st.info(
-            "Receiver Assessment is implemented in UI Phase 3. The real hierarchical lifecycle "
-            "already supports assessing Priya, Receiver B, and Receiver C — this shell will surface "
-            "that experience in the next phase."
-        )
-        if stage == "ASSURANCE_COMPLETE":
-            if st.button("Continue to Receiver Assessment", type="primary", key="stub_assess_all"):
-                _run_advance_action(client, stage)
+        sub_tabs = st.tabs(["Setup", "Assessment Experience", "Competency Profile"])
+        with sub_tabs[0]:
+            selected_participant_id = receiver_scenes.render_receiver_assessment_setup(client, summary)
+        with sub_tabs[1]:
+            receiver_scenes.render_assessment_experience(
+                client, st.session_state.get("guided_demo_selected_participant_id", "")
+            )
+        with sub_tabs[2]:
+            receiver_scenes.render_competency_profile(
+                client, st.session_state.get("guided_demo_selected_participant_id", "")
+            )
     with tabs[6]:
-        st.info("Readiness Decision is implemented in UI Phase 3.")
-        if assessed:
-            st.caption(f"{len(assessed)} of {receiver_count} receivers already assessed against the real KRA pipeline.")
+        sub_tabs = st.tabs(["Readiness Decision", "Executive Recommendation", "Cross-Receiver Comparison"])
+        with sub_tabs[0]:
+            receiver_scenes.render_readiness_decision(
+                client, st.session_state.get("guided_demo_selected_participant_id", "")
+            )
+        with sub_tabs[1]:
+            receiver_scenes.render_executive_recommendation(
+                client, st.session_state.get("guided_demo_selected_participant_id", "")
+            )
+        with sub_tabs[2]:
+            receiver_scenes.render_cross_receiver_comparison(client, summary)
