@@ -133,3 +133,35 @@ def assess_receiver(participant_id: str, db: Session = Depends(get_db)) -> dict:
 @router.get("/summary")
 def get_summary(db: Session = Depends(get_db)) -> dict:
     return _orchestrator(db).get_demo_summary()
+
+
+# -- UI Phase 2 additions (issue_log #19): read-only presentation
+# endpoints over real, already-computed lifecycle outputs. No scoring/
+# closure/gate logic lives here -- each just calls the orchestrator
+# method of the same name, which itself only reads or recomputes real
+# data (see services/demo/hierarchical_demo_orchestrator.py).
+
+@router.get("/discovery-summary")
+def get_discovery_summary(db: Session = Depends(get_db)) -> dict:
+    return _orchestrator(db).get_discovery_summary()
+
+
+@router.get("/knowledge-gaps")
+def get_knowledge_gaps(db: Session = Depends(get_db)) -> dict:
+    return _orchestrator(db).get_knowledge_gaps_detail()
+
+
+@router.get("/assurance-snapshot")
+def get_assurance_snapshot(db: Session = Depends(get_db)) -> dict:
+    return _orchestrator(db).get_assurance_snapshot()
+
+
+@router.get("/closure-history")
+def get_closure_history(db: Session = Depends(get_db)) -> dict:
+    return {"history": _orchestrator(db).get_closure_history()}
+
+
+@router.get("/traceability-example")
+def get_traceability_example(db: Session = Depends(get_db)) -> dict:
+    example = _orchestrator(db).get_traceability_example()
+    return {"example": example}

@@ -40,6 +40,7 @@ same fixed demo ids, unchanged behavior.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Optional
@@ -311,6 +312,28 @@ class HierarchicalDemoOrchestrator:
 
     # -- advance_enrichment --------------------------------------------------
 
+    def _current_open_gaps(self, package_id: str):
+        """Real, current, open Knowledge Gaps -- recomputed the same way
+        services/routers/hierarchical.py's list_knowledge_gaps already
+        does (build_validation_plan -> detect_all_findings ->
+        consolidate_findings -> rank_gaps), never a second scoring
+        implementation. Returns (payload, ranked_gaps)."""
+        from services.coverage.consolidation import consolidate_findings
+        from services.coverage.finding_detectors import detect_all_findings
+        from services.coverage.prioritization import rank_gaps
+        from services.coverage.validation_plan_builder import build_validation_plan
+        from services.graph.graph_storage import load_graph_version
+        from services.orchestration.workflow_runner import resolve_v2_profile_for_package
+
+        payload = load_graph_version(self.db, package_id)
+        profile = resolve_v2_profile_for_package(
+            self.db.query(KnowledgePackage).filter_by(id=package_id).first()
+        )
+        plan = build_validation_plan(payload.nodes, payload.relationships, profile, payload.graph_id)
+        findings = detect_all_findings(plan, payload.nodes, payload.relationships)
+        gaps = consolidate_findings(findings, payload.nodes)
+        return payload, rank_gaps(gaps)
+
     def advance_enrichment(
         self, max_rounds: int = 1, get_interpretation_for_gap_fn: Any = None,
     ) -> HierarchicalClosureResult:
@@ -325,15 +348,39 @@ class HierarchicalDemoOrchestrator:
 
         `get_interpretation_for_gap_fn` defaults to the real demo
         fixture (services.demo.hierarchical_gap_answers) -- override
-        only for controlled-failure-recovery testing."""
+        only for controlled-failure-recovery testing.
+
+        Also appends a qualitative interaction record per real round to
+        DemoJourneyState.closure_round_history_json (issue_log #19) --
+        object/rule_family/criticality/risk_level (read, not
+        recomputed, from a real pre-call gap snapshot), the real
+        question, the real deterministic SME response text (captured
+        via a thin wrapper around the interpretation function, not by
+        modifying services.coverage.hierarchical_closure), and which
+        real findings resolved. No score/gate value is stored here --
+        get_closure_history() always recomputes KCS/KQS/dimensions
+        fresh from the real persisted graph versions bracketing each
+        round, never from stored numbers."""
         program, package = self._get_or_create_program_and_package()
         journey = self._get_or_create_journey(package.id, program.id)
         if journey.stage in ("START", "INGESTED"):
             raise StageError(f"Cannot advance enrichment from stage {journey.stage!r} -- call validate_demo() first.")
 
-        interpretation_fn = get_interpretation_for_gap_fn or get_interpretation_for_gap
+        _payload_before, gaps_before = self._current_open_gaps(package.id)
+        gaps_before_by_key = {(g.object_id, g.rule_family): g for g in gaps_before}
+        objects_before_by_id = {o.id: o for o in _payload_before.nodes}
+
+        interpretation_fn_real = get_interpretation_for_gap_fn or get_interpretation_for_gap
+        captured_responses: dict[tuple, str] = {}
+
+        def _capturing_interpretation(gap, objects_by_id):
+            result = interpretation_fn_real(gap, objects_by_id)
+            if result is not None:
+                captured_responses[(gap.object_id, gap.rule_family)] = result.raw_text
+            return result
+
         closure_result = self.runner.run_hierarchical_closure(
-            package.id, interpretation_fn, max_rounds=max_rounds,
+            package.id, _capturing_interpretation, max_rounds=max_rounds,
         )
 
         if closure_result.rounds:
@@ -342,8 +389,30 @@ class HierarchicalDemoOrchestrator:
                 change_summary=f"Demo orchestrator: {len(closure_result.rounds)} closure round(s).",
             )
             self.db.commit()
+            version_before = new_version.version_number - 1
             journey.graph_version_number = new_version.version_number
             journey.closure_rounds_completed += len(closure_result.rounds)
+
+            history = json.loads(journey.closure_round_history_json) if journey.closure_round_history_json else []
+            for r in closure_result.rounds:
+                key = (r.targeted_object_id, r.targeted_rule_family)
+                gap = gaps_before_by_key.get(key)
+                obj = objects_before_by_id.get(r.targeted_object_id) if r.targeted_object_id else None
+                history.append({
+                    "history_index": len(history),
+                    "object_id": r.targeted_object_id,
+                    "object_name": obj.name if obj else r.targeted_object_id,
+                    "object_type": obj.object_type if obj else None,
+                    "rule_family": r.targeted_rule_family,
+                    "criticality": gap.criticality if gap else None,
+                    "risk_level": gap.risk_level if gap else None,
+                    "question": r.question,
+                    "sme_response": captured_responses.get(key),
+                    "resolved_finding_count": len(r.resolved_signatures or []),
+                    "graph_version_before": version_before,
+                    "graph_version_after": new_version.version_number,
+                })
+            journey.closure_round_history_json = json.dumps(history)
 
         # Monotonic: only ADVANCE to ENRICHING from VALIDATED. A call made
         # after the journey has already reached ASSURANCE_COMPLETE/
@@ -353,6 +422,205 @@ class HierarchicalDemoOrchestrator:
             journey.stage = "ENRICHING"
         self.db.commit()
         return closure_result
+
+    def get_closure_history(self) -> list[dict[str, Any]]:
+        """Every real closure interaction recorded so far, each
+        enriched with freshly-recomputed (never stored) before/after
+        KCS/KQS via validate_hierarchical() against the real persisted
+        graph versions bracketing that round."""
+        _program, package = self._get_or_create_program_and_package()
+        journey = self._get_or_create_journey(package.id, package.program_id)
+        if not journey.closure_round_history_json:
+            return []
+
+        history = json.loads(journey.closure_round_history_json)
+        kar_cache: dict[int, KnowledgeAssuranceResult] = {}
+
+        def _kar_at(version: int) -> Optional[KnowledgeAssuranceResult]:
+            if version < 1:
+                return None
+            if version not in kar_cache:
+                kar_cache[version] = self.runner.validate_hierarchical(package.id, version=version, persist=False)
+            return kar_cache[version]
+
+        enriched = []
+        for entry in history:
+            before = _kar_at(entry["graph_version_before"])
+            after = _kar_at(entry["graph_version_after"])
+            enriched.append({
+                **entry,
+                "kcs_before": before.kcs if before else None,
+                "kcs_after": after.kcs if after else None,
+                "kqs_before": before.kqs if before else None,
+                "kqs_after": after.kqs if after else None,
+            })
+        return enriched
+
+    def get_pre_enrichment_kar(self) -> Optional[KnowledgeAssuranceResult]:
+        """The real, initial (graph version 1) assurance snapshot --
+        always recomputed fresh from the real persisted first graph
+        version via the real validate_hierarchical(), never a stored/
+        hardcoded number. None if ingestion hasn't happened yet."""
+        _program, package = self._get_or_create_program_and_package()
+        if self._latest_graph_version(package.id) is None:
+            return None
+        try:
+            return self.runner.validate_hierarchical(package.id, version=1, persist=False)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _kar_to_dict(kar: Optional[KnowledgeAssuranceResult]) -> Optional[dict[str, Any]]:
+        if kar is None:
+            return None
+        return {
+            "kcs": kar.kcs, "tc": kar.tc, "ac": kar.ac, "rc": kar.rc,
+            "kqs": kar.kqs, "os": kar.os, "ev": kar.ev,
+            "sufficiency_gate_passed": kar.sufficiency_gate_passed,
+            "quality_gate_applicable": kar.quality_gate_applicable,
+            "quality_gate_passed": kar.quality_gate_passed,
+            "critical_unresolved_gaps": len(kar.critical_unresolved_gaps),
+            "transition_risks": len(kar.transition_risks),
+            "transition_risk_detail": [
+                {"risk_id": r.risk_id, "operational_scenario": r.operational_scenario,
+                 "description": r.description, "severity": r.severity, "status": r.status,
+                 "traceability_ref": r.traceability_ref}
+                for r in kar.transition_risks
+            ],
+        }
+
+    def get_assurance_snapshot(self) -> dict[str, Any]:
+        """Before/current comparison for the Knowledge Assurance and
+        Assurance Result scenes -- both sides always recomputed fresh
+        from real persisted graph versions, never stored/hardcoded."""
+        _program, package = self._get_or_create_program_and_package()
+        pre = self.get_pre_enrichment_kar()
+        current = None
+        if self._latest_graph_version(package.id) is not None:
+            current = self.runner.validate_hierarchical(package.id, persist=False)
+        return {"pre_enrichment": self._kar_to_dict(pre), "current": self._kar_to_dict(current)}
+
+    def get_discovery_summary(self) -> dict[str, Any]:
+        """Real object/relationship counts, object-type distribution,
+        attribute-state distribution, and a few grounding examples --
+        all read directly off the current persisted graph, no scoring."""
+        from collections import Counter
+
+        from services.graph.graph_storage import load_graph_version
+
+        _program, package = self._get_or_create_program_and_package()
+        version = self._latest_graph_version(package.id)
+        if version is None:
+            return {"available": False}
+
+        payload = load_graph_version(self.db, package.id, version=version.version_number)
+        type_counts = Counter(o.object_type for o in payload.nodes)
+        state_counts: Counter = Counter()
+        attributes_captured = 0
+        for o in payload.nodes:
+            for attr_value in o.attributes.values():
+                state = attr_value.state.value if hasattr(attr_value.state, "value") else str(attr_value.state)
+                state_counts[state] += 1
+                if state == "PRESENT":
+                    attributes_captured += 1
+
+        examples = {}
+        for wanted_type in ("System", "Known Issue", "Task"):
+            match = next((o for o in payload.nodes if o.object_type == wanted_type), None)
+            if match is not None:
+                examples[wanted_type] = {
+                    "name": match.name,
+                    "description": match.description,
+                    "criticality": match.criticality,
+                    "attributes": {
+                        k: (v.value if v.value is not None else (
+                            v.state.value if hasattr(v.state, "value") else str(v.state)
+                        ))
+                        for k, v in match.attributes.items()
+                    } if match.attributes else {},
+                }
+
+        return {
+            "available": True,
+            "graph_version_number": version.version_number,
+            "node_count": payload.node_count,
+            "relationship_count": len(payload.relationships),
+            "object_type_distribution": dict(type_counts),
+            "attribute_state_distribution": dict(state_counts),
+            "attributes_captured": attributes_captured,
+            "examples": examples,
+        }
+
+    def get_knowledge_gaps_detail(self) -> dict[str, Any]:
+        """Real current Findings/Knowledge Gaps -- same real functions
+        services/routers/hierarchical.py's endpoints already call, read
+        here for the demo's own presentation needs (ranked, with the
+        object's real name attached)."""
+        _program, package = self._get_or_create_program_and_package()
+        version = self._latest_graph_version(package.id)
+        if version is None:
+            return {"available": False, "findings_count": 0, "gaps": []}
+
+        payload, ranked_gaps = self._current_open_gaps(package.id)
+        objects_by_id = {o.id: o for o in payload.nodes}
+
+        from services.coverage.finding_detectors import detect_all_findings
+        from services.coverage.validation_plan_builder import build_validation_plan
+        from services.orchestration.workflow_runner import resolve_v2_profile_for_package
+
+        profile = resolve_v2_profile_for_package(package)
+        plan = build_validation_plan(payload.nodes, payload.relationships, profile, payload.graph_id)
+        findings = detect_all_findings(plan, payload.nodes, payload.relationships)
+
+        gaps_out = []
+        for gap in ranked_gaps:
+            obj = objects_by_id.get(gap.object_id) if gap.object_id else None
+            gaps_out.append({
+                "gap_id": gap.gap_id,
+                "object_id": gap.object_id,
+                "object_name": obj.name if obj else gap.object_id,
+                "object_type": obj.object_type if obj else None,
+                "rule_family": gap.rule_family,
+                "criticality": gap.criticality,
+                "risk_level": gap.risk_level,
+                "blocking_readiness_gate": gap.blocking_readiness_gate,
+                "consolidated_question": gap.consolidated_question,
+                "status": gap.status,
+            })
+
+        return {
+            "available": True,
+            "findings_count": len(findings),
+            "gaps_count": len(ranked_gaps),
+            "gaps": gaps_out,
+        }
+
+    def get_traceability_example(self) -> Optional[dict[str, Any]]:
+        """The longest real chain currently available for one resolved
+        closure interaction: profile rule_family -> object -> resolved
+        Finding signatures -> Knowledge Gap question -> SME response ->
+        resolution. Built entirely from real, already-captured data
+        (closure history + the current graph); returns None if no
+        closure interaction has happened yet, rather than fabricating one."""
+        history = self.get_closure_history()
+        if not history:
+            return None
+        # Prefer a fully-resolved interaction for the clearest chain.
+        entry = next((e for e in history if e["resolved_finding_count"] > 0), history[0])
+        _program, package = self._get_or_create_program_and_package()
+        profile_id = self._get_or_create_journey(package.id, package.program_id).profile_id
+        return {
+            "profile_id": profile_id,
+            "rule_family": entry["rule_family"],
+            "object_id": entry["object_id"],
+            "object_name": entry["object_name"],
+            "object_type": entry["object_type"],
+            "criticality": entry["criticality"],
+            "risk_level": entry["risk_level"],
+            "question": entry["question"],
+            "sme_response": entry["sme_response"],
+            "resolved_finding_count": entry["resolved_finding_count"],
+        }
 
     # -- complete_assurance --------------------------------------------------
 

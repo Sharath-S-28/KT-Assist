@@ -21,8 +21,8 @@ already-proven checkpoints the offline replay proof exercises.
 import streamlit as st
 
 from frontend.api_client import ApiClient, ApiError
-from frontend.guided_demo import portfolio_fixture as pf
-from frontend.theme import CARD_BG, BORDER, MUTED, badge_html, decision_color, inject_global_css
+from frontend.guided_demo import lifecycle_scenes, portfolio_fixture as pf
+from frontend.theme import MUTED, badge_html, decision_color, inject_global_css
 
 # Conceptual 7-stage narrative (task spec) mapped onto the real 6
 # backend stages (models.demo_journey.DEMO_JOURNEY_STAGES) -- labels
@@ -165,60 +165,46 @@ def render(client: ApiClient) -> None:
 
     _progress_tracker(_conceptual_index(stage, len(assessed), receiver_count))
     st.write("")
-    st.divider()
 
-    # -- Current assurance/readiness summary, if available -------------------
-    assurance = summary.get("assurance")
-    left, right = st.columns([2, 1])
-    with left:
-        st.subheader("Current State")
-        st.markdown(
-            f"**Lifecycle stage:** `{stage}` &nbsp;&nbsp; **Graph version:** "
-            f"{summary.get('graph_version_number') or '—'} &nbsp;&nbsp; "
-            f"**Closure rounds completed:** {summary.get('closure_rounds_completed', 0)}",
-            unsafe_allow_html=True,
-        )
-        if assurance is not None:
-            st.markdown(
-                f"""
-                <div style="background-color:{CARD_BG};border:1px solid {BORDER};
-                border-radius:8px;padding:12px 16px;margin-top:8px;">
-                    KCS {assurance['kcs']:.2f} &nbsp;|&nbsp; KQS {assurance['kqs']:.2f} &nbsp;|&nbsp;
-                    Sufficiency Gate: {"Pass" if assurance['sufficiency_gate_passed'] else "Not yet"} &nbsp;|&nbsp;
-                    Quality Gate: {"Pass" if assurance['quality_gate_passed'] else "Not yet"} &nbsp;|&nbsp;
-                    Open Critical Gaps: {assurance['critical_unresolved_gaps']}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            st.caption("Knowledge intake has not started yet.")
-
-    with right:
-        st.subheader("Receiver Outcomes")
-        if not assessed:
-            st.caption("No receivers assessed yet.")
-        else:
-            for participant_id, r in receivers.items():
-                if r.get("status") != "assessed":
-                    continue
+    if assessed:
+        st.markdown("**Receiver Outcomes**")
+        outcome_cols = st.columns(len(assessed))
+        for col, r in zip(outcome_cols, assessed):
+            with col:
                 color = decision_color(r["final_decision"])
                 st.markdown(
-                    f'<div style="margin-bottom:6px;">{r["name"]}: '
-                    f'{badge_html(f"{r["final_decision"]} · OIS {r["ois_score"]:.1f}", color)}</div>',
+                    f'{r["name"]}<br>{badge_html(f"{r["final_decision"]} · OIS {r["ois_score"]:.1f}", color)}',
                     unsafe_allow_html=True,
                 )
 
     st.divider()
 
-    # -- Handoff / resume action ------------------------------------------
-    action_label = _resume_action_for_stage(stage)
-    if stage == "ASSESSMENT_COMPLETE":
-        st.success(f"{action_label} — all three receivers have been assessed against the real hierarchical lifecycle.")
-    else:
-        if st.button(action_label, type="primary"):
-            _run_advance_action(client, stage)
-        st.caption(
-            "This single action drives the same real, deterministic hierarchical lifecycle the offline "
-            "replay proof validates — no detailed step-by-step screens yet (Phase 2/3)."
+    tab_labels = [
+        "1. Knowledge Intake", "2. Knowledge Discovery", "3. Knowledge Assurance",
+        "4. Gap Closure", "5. Assurance Result", "6. Receiver Assessment", "7. Readiness Decision",
+    ]
+    tabs = st.tabs(tab_labels)
+
+    with tabs[0]:
+        lifecycle_scenes.render_knowledge_intake(client, summary)
+    with tabs[1]:
+        lifecycle_scenes.render_knowledge_discovery(client, summary)
+    with tabs[2]:
+        lifecycle_scenes.render_knowledge_assurance(client, summary)
+    with tabs[3]:
+        lifecycle_scenes.render_gap_closure(client, summary)
+    with tabs[4]:
+        lifecycle_scenes.render_assurance_result(client, summary)
+    with tabs[5]:
+        st.info(
+            "Receiver Assessment is implemented in UI Phase 3. The real hierarchical lifecycle "
+            "already supports assessing Priya, Receiver B, and Receiver C — this shell will surface "
+            "that experience in the next phase."
         )
+        if stage == "ASSURANCE_COMPLETE":
+            if st.button("Continue to Receiver Assessment", type="primary", key="stub_assess_all"):
+                _run_advance_action(client, stage)
+    with tabs[6]:
+        st.info("Readiness Decision is implemented in UI Phase 3.")
+        if assessed:
+            st.caption(f"{len(assessed)} of {receiver_count} receivers already assessed against the real KRA pipeline.")

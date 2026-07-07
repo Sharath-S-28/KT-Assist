@@ -18,7 +18,7 @@ the transitions that produce them):
 
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -55,6 +55,19 @@ class DemoJourneyState(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     profile_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     graph_version_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     closure_rounds_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # UI Phase 2 addition (issue_log #19): qualitative closure-round
+    # interaction history (which object/rule_family was targeted, the
+    # remediation question, the deterministic SME response text, which
+    # findings resolved, and which graph versions bracket the round) as
+    # a JSON list. This is NOT re-derivable from the graph alone (unlike
+    # KCS/KQS/dimension movement, which the presentation layer always
+    # recomputes fresh via validate_hierarchical() against the real
+    # persisted graph versions before/after each round) -- it is the one
+    # piece of real closure-loop output that is otherwise discarded once
+    # HierarchicalClosureResult goes out of scope, so it is captured here
+    # rather than reconstructed or fabricated.
+    closure_round_history_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     def __repr__(self) -> str:
         return f"<DemoJourneyState package_id={self.package_id} stage={self.stage!r}>"

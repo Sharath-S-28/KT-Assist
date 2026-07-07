@@ -430,6 +430,23 @@ class ApiClient:
     def assess_demo_receiver(self, participant_id: str) -> dict:
         return self._post(f"/api/demo/hierarchical/receivers/{participant_id}/assess").json()
 
+    # -- UI Phase 2 additions (issue_log #19) --------------------------------
+
+    def get_demo_discovery_summary(self) -> dict:
+        return self._get("/api/demo/hierarchical/discovery-summary").json()
+
+    def get_demo_knowledge_gaps(self) -> dict:
+        return self._get("/api/demo/hierarchical/knowledge-gaps").json()
+
+    def get_demo_assurance_snapshot(self) -> dict:
+        return self._get("/api/demo/hierarchical/assurance-snapshot").json()
+
+    def get_demo_closure_history(self) -> dict:
+        return self._get("/api/demo/hierarchical/closure-history").json()
+
+    def get_demo_traceability_example(self) -> dict:
+        return self._get("/api/demo/hierarchical/traceability-example").json()
+
 
 _default_client: Optional[ApiClient] = None
 
