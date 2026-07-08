@@ -15,7 +15,12 @@ from services.graph.graph_engine import (
     get_neighbors,
     traverse_from,
 )
-from services.graph.graph_storage import list_graph_versions, load_graph_version, save_graph_version
+from services.graph.graph_storage import (
+    _resolve_graph_path,
+    list_graph_versions,
+    load_graph_version,
+    save_graph_version,
+)
 from services.graph.knowledge_model import validate_object, validate_relationship
 from utils.errors import ValidationFailedError
 
@@ -50,7 +55,8 @@ def test_v1_save_creates_version_1_and_round_trips_to_json(db_session, sample_pa
     assert version_row.relationship_count == 2
     assert payload.version == 1
 
-    on_disk = json.loads(open(version_row.storage_path).read())
+    resolved_path = _resolve_graph_path(version_row.storage_path, sample_package.id, version_row.version_number)
+    on_disk = json.loads(resolved_path.read_text())
     assert on_disk["version"] == 1
     assert len(on_disk["nodes"]) == 3
     assert len(on_disk["relationships"]) == 2
