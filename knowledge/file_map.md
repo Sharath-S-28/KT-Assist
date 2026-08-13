@@ -14,18 +14,13 @@
 - [domain.py](file:///config/domain.py): Domain enums/constants (lifecycle states, package types, object types).
 - [templates.py](file:///config/templates.py): KTTL template profiles — required/optional object sets per package type.
 - [ui.py](file:///config/ui.py): Frozen color palette + UI constants.
-- [ontology.py](file:///config/ontology.py): Hierarchical-assurance ontology registry (9 knowledge-object types; System fully authored).
-- [kttl_v2_profiles.py](file:///config/kttl_v2_profiles.py): `KTTLProfileV2` (incl. `PILOT_PROFILE`) — v2 templates w/ relationship/sufficiency/evidence requirements + weights; v1-compat loader.
-- [prioritization.py](file:///config/prioritization.py): Gap-ranking factor weights (criticality/readiness_blocking/aging active; 4 more named at zero weight).
-- [risk_rules.py](file:///config/risk_rules.py): `RiskMappingRule`s (6, one per pilot rule_family) driving deterministic TransitionRisk derivation.
 
 ## models/ (SQLAlchemy ORM)
 - [mixins.py](file:///models/mixins.py): Shared columns (ids, timestamps).
 - [program.py](file:///models/program.py): Program + lifecycle_state.
-- [KnowledgePackage] gained nullable `kttl_profile_id` (NULL = legacy v1 path, the only opt-in gate anywhere for hierarchical assurance).
 - [asset.py](file:///models/asset.py): Uploaded KT assets/chunks.
 - [participant.py](file:///models/participant.py): Participants and roles (giver/receiver).
-- [coverage.py](file:///models/coverage.py): CoverageResult incl. domain_breakdown_json; +9 nullable hierarchical columns (kcs/tc/ac/rc/kqs/os/ev scores + 2 quality-gate booleans).
+- [coverage.py](file:///models/coverage.py): CoverageResult incl. domain_breakdown_json.
 - [assessment.py](file:///models/assessment.py): Scenarios, responses, evidence.
 - [scoring.py](file:///models/scoring.py): KASE/competency/pillar score rows.
 - [readiness.py](file:///models/readiness.py): Readiness verdicts/gates.
@@ -34,7 +29,6 @@
 
 ## schemas/ (Pydantic API contracts)
 - One module per resource mirroring routers: [program](file:///schemas/program.py), [upload](file:///schemas/upload.py), [asset](file:///schemas/asset.py), [graph](file:///schemas/graph.py), [knowledge_graph](file:///schemas/knowledge_graph.py), [gap](file:///schemas/gap.py), [assessment](file:///schemas/assessment.py), [participant](file:///schemas/participant.py), [dashboard](file:///schemas/dashboard.py), [explanation](file:///schemas/explanation.py), [assurance_report](file:///schemas/assurance_report.py), [workflow](file:///schemas/workflow.py), [agent_contracts](file:///schemas/agent_contracts.py) (inter-agent I/O shapes), [common](file:///schemas/common.py).
-- Hierarchical-assurance schemas (Wave 1-7): [knowledge_element_state.py](file:///schemas/knowledge_element_state.py) (`KnowledgeElementState` 5-state model + `AttributeValue`/`RelationshipAssertion`/`EvidenceRequirement`), [hierarchical.py](file:///schemas/hierarchical.py) (`Finding`/`KnowledgeGap`/`GapBundle`/`TransitionRisk`), [gap_model.py](file:///schemas/gap_model.py) (Finding↔GapCandidate compat adapter), [kttl_profile.py](file:///schemas/kttl_profile.py), [validation_plan.py](file:///schemas/validation_plan.py), [knowledge_assurance.py](file:///schemas/knowledge_assurance.py) (KAR — `KnowledgeAssuranceResult`), [knowledge_graph.py](file:///schemas/knowledge_graph.py) additively extended (`schema_version`, `attributes`, `validation_status`, `evidence_refs`, `state`, `provenance`).
 
 ## services/core/
 - [claude_client.py](file:///services/core/claude_client.py): Sole Anthropic API wrapper + caching + dev-mode mocks.
@@ -59,28 +53,6 @@
 - [coverage_persistence.py](file:///services/coverage/coverage_persistence.py): Leaf-level persist of CoverageResult (circular-import breaker).
 - [gap_detection.py](file:///services/coverage/gap_detection.py): Derives gaps from coverage vs template.
 - [gap_governance.py](file:///services/coverage/gap_governance.py): Gap lifecycle incl. close_gap → KVA re-run + persist + graph version bump.
-
-## services/agents/ — hierarchical-assurance addition
-- [attribute_arbitration.py](file:///services/agents/attribute_arbitration.py): Python-owned final-state assignment for structured attributes across chunks (merge/CONFLICTING/deterministic-N/A/NOT_OBSERVED). Wired into `kai_pipeline.run_kai_pipeline()` via opt-in `pilot_profile` param (`None` = legacy, byte-identical).
-
-## services/coverage/ — hierarchical-assurance addition (Phase 4 Waves 1-7, `KnowledgeElementState`/Finding-based, parallel to v1 gap_detection)
-- [validation_plan_builder.py](file:///services/coverage/validation_plan_builder.py): Builds `ValidationPlan` from `KTTLProfileV2`.
-- [condition_evaluator.py](file:///services/coverage/condition_evaluator.py): Shared conditional-requirement syntax evaluator (unsupported syntax fails loudly).
-- [sufficiency_rules.py](file:///services/coverage/sufficiency_rules.py): Pilot sufficiency rules (Sufficiency/Quality gates).
-- [finding_detectors.py](file:///services/coverage/finding_detectors.py): 5-level Finding detection (Level 1 reuses v1 `_validate_type_status`).
-- [dimensional_scoring.py](file:///services/coverage/dimensional_scoring.py): TC/AC/RC/OS/EV dimensional scores, KCS/KQS (N/A-renormalized), gate evaluation. Fully independent of `coverage_engine.py`/`kva.py`.
-- [consolidation.py](file:///services/coverage/consolidation.py): Finding → `KnowledgeGap` (by object_id, rule_family) → `GapBundle`.
-- [prioritization.py](file:///services/coverage/prioritization.py): Ranks gaps per `config/prioritization.py` weights.
-- [enrichment_coordinator.py](file:///services/coverage/enrichment_coordinator.py): Thin coordinator (question gen → interpretation → graph update → revalidation), sequences existing modules only.
-- [hierarchical_closure.py](file:///services/coverage/hierarchical_closure.py): `run_hierarchical_closure_loop()` — hierarchical equivalent of `close_gaps_until_sufficient`; 6 termination reasons.
-- [transition_risk.py](file:///services/coverage/transition_risk.py): `evaluate_risk_rules()` — deterministic TransitionRisk via `config/risk_rules.py`, never calls scoring functions.
-- [knowledge_assurance_builder.py](file:///services/coverage/knowledge_assurance_builder.py) / [knowledge_assurance_persistence.py](file:///services/coverage/knowledge_assurance_persistence.py): Builds/persists KAR (pure composition; separate writer from v1's `persist_coverage_result`, same table).
-
-## services/readiness/ — hierarchical-assurance addition
-- [kar_adapter.py](file:///services/readiness/kar_adapter.py): `adapt_kar_to_gates()` — feeds KAR into unmodified `resolve_readiness()` via `gap_governance.determine_completion_status`.
-
-## services/routers/ — hierarchical-assurance addition
-- [hierarchical.py](file:///services/routers/hierarchical.py): 4 read-only endpoints (`/kar`, `/knowledge-gaps`, `/transition-risks`, `/closure-status`), 404 for non-opted-in packages. Mounted in `app.py` alongside v1 routers.
 
 ## services/assessment/
 - [scenario_generation.py](file:///services/assessment/scenario_generation.py): Claude-generated scenarios per competency.
@@ -113,7 +85,7 @@
 - [pdf_exporter.py](file:///services/exporters/pdf_exporter.py) / [pptx_exporter.py](file:///services/exporters/pptx_exporter.py): reportlab/python-pptx export.
 
 ## services/orchestration/ & demo/ & datasets/ & checks/
-- [workflow_runner.py](file:///services/orchestration/workflow_runner.py): End-to-end pipeline runner over HTTP-equivalent service calls. +3 additive hierarchical methods (`ingest_hierarchical`, `validate_hierarchical`, `run_hierarchical_closure`) + `resolve_v2_profile_for_package`/`HIERARCHICAL_PROFILE_REGISTRY`; zero v1 methods touched.
+- [workflow_runner.py](file:///services/orchestration/workflow_runner.py): End-to-end pipeline runner over HTTP-equivalent service calls.
 - [demo_runner.py](file:///services/orchestration/demo_runner.py): Scripted E2E demo (frozen golden values 63%→89%, OIS 84, READY/Silver); [services/demo/demo_runner.py](file:///services/demo/demo_runner.py) legacy shim.
 - [dataset_loader.py](file:///services/datasets/dataset_loader.py) / [dataset_validator.py](file:///services/datasets/dataset_validator.py): Phase-13 ground-truth dataset load + tuning-loop validation harness.
 - [definition_of_done.py](file:///services/checks/definition_of_done.py): Programmatic DoD probes per session.
@@ -140,3 +112,22 @@
 - `test_sessionN_*.py` (S1–S32): One suite per build session — data layer(1), services(2), workflow(4), programs/packages/roles(5), completion(6), knowledge model(7), graph storage(8), graph viewer(9), ingestion(10), KAI extraction(11), relationships(12), KAI pipeline(13), KTTL(14), coverage(15), gap detection(16), KVA(17), response interpretation(18), graph update(19), gap governance(20), scenario gen(21), weighting(22), validation(23), KRA(24), evidence(25), KASE scoring(26), thresholds(27), KASE integration(28), explanation(29), recommendations(30), assurance report(32).
 - Router/API suites: [test_assets_router.py](file:///tests/test_assets_router.py), [test_gaps_router.py](file:///tests/test_gaps_router.py), [test_graph_router.py](file:///tests/test_graph_router.py), [test_api_client.py](file:///tests/test_api_client.py), [test_dashboards.py](file:///tests/test_dashboards.py), [test_demo_runner.py](file:///tests/test_demo_runner.py), [test_resilience.py](file:///tests/test_resilience.py), [test_definition_of_done.py](file:///tests/test_definition_of_done.py), [test_dod_probe.py](file:///tests/test_dod_probe.py), [test_reset_demo.py](file:///tests/test_reset_demo.py).
 - Cleanup candidates (do not extend): `tests/zz_debug_test*.py`, `tests/test_demo_runner_copy.py`, `models/__init__placeholder__.py`, empty `agents/`, `storage/` stubs.
+- [test_competency_coverage_correction.py](file:///tests/test_competency_coverage_correction.py): regression tests for the additive `OBJECT_TYPE_COMPETENCY_MAP_ADDITIONAL` correction (issue_log #14).
+- [test_hierarchical_demo_replay_proof.py](file:///tests/test_hierarchical_demo_replay_proof.py): offline, deterministic replay-proof lifecycle tests (gap-signature stability, real closure, KAR, scenario-level fixture resolution order, 3 real KASE/KRA outcomes all matching golden, no-Anthropic-call, deterministic rerun) — issue_log #13-#16.
+- [services/demo/](file:///services/demo/) (demo-mode-hierarchical-wip branch only): `hierarchical_fixtures.py` (pinned demo ids/names), `hierarchical_kai_attributes.py` (pilot attribute overlay), `hierarchical_gap_answers.py` (evidence-confirmation + relationship-closure fixture answers), `receiver_strategies.py` (3 golden receiver strategies + `TUNING_OVERRIDES` (competency-level) + `SCENARIO_LEVEL_OVERRIDES`/`build_receiver_scenario_responses()` (scenario-instance-level, issue_log #16) + `UnknownScenarioOverrideKeyError`), `seed_demo_hierarchical_kai_cache.py`, `run_hierarchical_demo_replay_proof.py` (thin CLI wrapper around the orchestrator, issue_log #17), `hierarchical_demo_orchestrator.py` (new, issue_log #17 — `HierarchicalDemoOrchestrator`: `get_demo_state/reset_demo/ingest_demo/validate_demo/advance_enrichment/complete_assurance/assess_receiver/get_demo_summary`).
+- [models/demo_journey.py](file:///models/demo_journey.py) (new, issue_log #17): `DemoJourneyState` — orchestration-progress-only checkpoint, one row per demo package_id.
+- [services/routers/demo_hierarchical.py](file:///services/routers/demo_hierarchical.py) (new, issue_log #17): `/api/demo/hierarchical/*` — additive, demo-scoped API surface over `HierarchicalDemoOrchestrator`. Distinct from `services/routers/hierarchical.py` (generic v2-profile read endpoints for any opted-in package) — this one is specifically the pinned demo journey.
+- [scripts/reset_hierarchical_demo.py](file:///scripts/reset_hierarchical_demo.py) (new, issue_log #17): idempotent reset CLI for the hierarchical demo only — distinct from `scripts/reset_demo.py` (legacy v1 `cli.py demo` runbook cleanup).
+- [frontend/guided_demo/](file:///frontend/guided_demo/) (new, issue_log #18): `portfolio_fixture.py` (static synthetic portfolio + PBI-case live-state overlay), `executive_dashboard.py` (Executive Command Center screen), `guided_shell.py` (Guided Demo Case Shell screen — real PBI journey progress + resume CTA; lightweight static detail view for synthetic cases). Lives under `frontend/`, not `services/demo/`, because `tests/test_frontend_boundary.py` forbids `frontend/` from importing `services/` — this is pure presentation data, deliberately placed on the frontend side of that boundary.
+- [frontend/api_client.py](file:///frontend/api_client.py): +8 wrapper methods for `/api/demo/hierarchical/*` (issue_log #18) — `get_demo_state`, `get_demo_summary`, `reset_demo_hierarchical`, `ingest_demo_hierarchical`, `validate_demo_hierarchical`, `advance_demo_enrichment`, `complete_demo_assurance`, `assess_demo_receiver`.
+- [streamlit_app.py](file:///streamlit_app.py): +2 pages (Executive Command Center — now the default landing page — and Guided Demo Case Shell), + `st.session_state["_nav_pages"]` registry for cross-page `st.switch_page()` (issue_log #18). The original 10 screens/4 nav groups are unmodified.
+- [frontend/guided_demo/lifecycle_scenes.py](file:///frontend/guided_demo/lifecycle_scenes.py) (new, issue_log #19): 5 detailed scene renderers (Knowledge Intake/Discovery/Assurance/Gap Closure/Assurance Result), integrated into `guided_shell.py` via `st.tabs()`. Read-mostly over real backend outputs; mutating actions are explicit button presses only.
+- [frontend/guided_demo/presentation_labels.py](file:///frontend/guided_demo/presentation_labels.py) (new, issue_log #19): `rule_family`/attribute-state → human-readable label mapping, presentation-only, never touches backend taxonomy values.
+- [models/demo_journey.py](file:///models/demo_journey.py): `DemoJourneyState.closure_round_history_json` (new column, issue_log #19) — real per-round question/SME-response/resolved-finding-count history; migrated via `scripts/migrate_demo_journey_round_history.py`.
+- [services/demo/hierarchical_demo_orchestrator.py](file:///services/demo/hierarchical_demo_orchestrator.py): +5 methods (issue_log #19) — `get_discovery_summary`, `get_knowledge_gaps_detail`, `get_pre_enrichment_kar`, `get_assurance_snapshot`, `get_closure_history`, `get_traceability_example`; `advance_enrichment()` now also captures round history (SME response text via a thin interpretation-function wrapper, no core closure-loop changes).
+- [services/routers/demo_hierarchical.py](file:///services/routers/demo_hierarchical.py): +5 read-only endpoints (issue_log #19) — `/discovery-summary`, `/knowledge-gaps`, `/assurance-snapshot`, `/closure-history`, `/traceability-example`; +1 more (issue_log #20) — `/receivers/{participant_id}/assessment-detail`.
+- [frontend/guided_demo/receiver_scenes.py](file:///frontend/guided_demo/receiver_scenes.py) (new, issue_log #20): Receiver Assessment Setup, Assessment Experience, Competency Evidence Profile, Readiness Decision, Executive Recommendation, Cross-Receiver Comparison — all read via `get_demo_receiver_assessment_detail()`. Imports `config` directly (COMPETENCY_CATALOG) — allowed, same precedent as `theme.py`'s `config.COLORS`.
+- [services/demo/hierarchical_demo_orchestrator.py](file:///services/demo/hierarchical_demo_orchestrator.py): +1 method (issue_log #20) — `get_receiver_assessment_detail`; `_rollup_from_existing_readiness` bug-fixed to recompute the real `ThresholdResolution` via `resolve_readiness()` instead of a placeholder `effective_threshold=0`.
+- [services/graph/graph_storage.py](file:///services/graph/graph_storage.py) (issue_log #21): `storage_path` now persisted as a portable repo-relative path; new `_resolve_graph_path()` (centralized, used by both save/load) + `GraphArtifactNotFoundError`. All graph consumers (explanation engine, graph router, demo router, workflow_runner) inherit the fix automatically — none were touched individually.
+- [scripts/migrate_graph_storage_paths.py](file:///scripts/migrate_graph_storage_paths.py) (new, issue_log #21): idempotent repair utility for legacy absolute `KnowledgeGraphVersion.storage_path` values (`--dry-run` supported); never mutates a row it can't verify.
+- [knowledge/research_program.md](file:///knowledge/research_program.md) (new, issue_log #24): persistent research/IP/publication registry — provenance & IP gate (§0, BLOCKING), decision log, mechanism inventory M1-M9 with confidentiality classification, novelty matrix (empty), prior-art matrix (empty), claim-evidence log, paper manifest (empty), open-questions register. Cross-session source of truth for the research track; contains no engineering state (the other four knowledge files remain authoritative for that).
